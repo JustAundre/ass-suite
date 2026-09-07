@@ -9,9 +9,7 @@
 #
 # Prompt for users to ...
 # Delete, remove password, lock, reshell, reUID & regroup.
-PS3="$(for user in "${all_users[@]}"; do
-	id -a "${user}"
-done)"
+PS3="$(id -a "${all_users[@]}")"
 mapfile -td '' users_del < <(cl-new -mt 'Select users to delete' "${all_users[@]}")
 mapfile -td '' users_nullpass < <(cl-new -mt 'Select users to remove passwords from' "${all_users[@]}")
 mapfile -td '' users_lock < <(cl-new -mt 'Select users to lock' "${all_users[@]}")
@@ -84,4 +82,4 @@ done
 #
 # Secures root user
 # (L)ocks user (root) & (d)eletes their password
-confirm "Lock & remove password for UID 0 user ($(id -nu 0))" && passwd root -ld
+confirm "Lock & remove password for UID 0 user \"$(id -nu 0)\"" && passwd root -ld
