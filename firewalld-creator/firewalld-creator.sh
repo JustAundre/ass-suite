@@ -124,7 +124,7 @@ hash firewall-cmd && while true; do
 			# Read input character by character
 			# Backspace works as backspace.
 			# Change fields with [ENTER].
-			IFS= read -srn1 char
+			IFS='' read -srn1 char
 			if [[ "${char}" == $'\x7f' || "${char}" == $'\b' ]]; then
 				input["${target}"]="${input[${target}]%?}"
 			elif [[ -z "${char}" ]]; then
