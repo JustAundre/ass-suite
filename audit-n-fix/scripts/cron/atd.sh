@@ -13,7 +13,8 @@ if ! hash atd &>/dev/null; then
 fi
 #
 # AtD does not have a standardized directory where it stores Atd jobs, so you have to dig deep into its binary for it
-while read -r path; do
+mapfile -td '' paths < <(strings "$(which atd)" | grep -zoE '/var/spool/.+')
+for path in "${paths[@]}"; do
 	# Cycle through the possible candidate AtD jobs directories until 1 sticks
 	[[ -d "${path}" && -x "${path}" ]] || continue
 	if [[ ! -d "${path}" ]]; then
@@ -30,7 +31,4 @@ while read -r path; do
 		"${EDITOR}" -- "${job}"
 		rm -vi -- "${job}"
 	done
-done < <(
-	strings "$(which atd)" |
-		grep -Eo '/var/spool/.+'
-)
+done
