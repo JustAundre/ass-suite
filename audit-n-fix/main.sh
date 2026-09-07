@@ -23,9 +23,10 @@ done
 # Trying to avoid errors when globbing results in nothing, & set case insensitivity for responses.
 # Unset aliases & disable alias expansion
 # Make a pipeline's exit code the exit code of the last failed command of the pipelines
+export EDITOR
 until [[ -x "${EDITOR}" ]] || hash "${EDITOR}" &>/dev/null; do
-	log w 'Invalid or no text editor selected; try nano or vi?'
-	read -rp 'Type a text editor and hit [ENTER] to confirm: ' EDITOR
+	log w 'EDITOR environment variable is invalid or empty; try nano or vi?'
+	read -erp 'Type a text editor and hit [ENTER] to confirm: ' EDITOR
 done
 umask 077
 shopt -s dotglob nullglob nocasematch
