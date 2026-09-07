@@ -67,11 +67,14 @@ declare -r python_hashing_logic="import hashlib, sys; h = sys.stdin.read().encod
 layer_at=1
 stop_hash=0
 counts=0
-if (( config[fake_root] )); then
+if ((config[fake_root])); then
 	declare -x PS1="[root@${HOSTNAME%%.*} ~]# "
 else
 	declare -x PS1="[${USER}@${HOSTNAME%%.*} ~]$ "
 fi
+#
+# NOT read as:			"if TTY variable = result from TTY command",
+# Correctly read as:	"if tty command is successful (whose result happens to be assigned to the TTY var)".
 if TTY="$(tty)"; then
 	TTY="${TTY#*/*/}"
 	SSH_TTY="${TTY}"
@@ -79,16 +82,6 @@ else
 	TTY="${SSH_TTY}"
 fi
 declare -rx TTY SSH_TTY
-#
-# Log everything
-IFS= read -rd '' PROMPT_COMMAND <<- EOF
-	history -a
-	last_cmd=\$(sed 's/^[ ]*[0-9]*[ ]*//' <<<"\$(history 1)")
-	[[ -n "\${last_cmd}" ]] &&
-		tee -a "${config[log_file]}" <<<"EUID: \${EUID} | UID: ${UID} | User: ${USER} | IP: ${SSH_CLIENT%% *} | TTY: ${TTY} | Cmd: \${last_cmd}" |
-			systemd-cat -t "${config[log_tag]}"
-EOF
-declare -r PROMPT_COMMAND
 #
 # Dynamic handling for SSH_CONNECTION/ip_from
 [[ -z ${SSH_CLIENT} ]] && SSH_CLIENT=Local
