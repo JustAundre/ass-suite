@@ -51,17 +51,17 @@ word_pull() {
 # Parse CLI arguments
 while getopts 's:m:M:c:a:p:v' arg; do
 	case "${arg}" in
-		s) separator="${OPTARG}" ;;
-		m) min="${OPTARG}" ;;
-		M) max="${OPTARG}" ;;
-		c) capitals="${OPTARG}" ;;
-		a) password_amount="${OPTARG}" ;;
-		p) pattern="${OPTARG}" ;;
-		v) verbose=y ;;
-		*)
-			log e "Invalid argument \"${arg}\""
-			exit 2
-			;;
+	s) separator="${OPTARG}" ;;
+	m) min="${OPTARG}" ;;
+	M) max="${OPTARG}" ;;
+	c) capitals="${OPTARG}" ;;
+	a) password_amount="${OPTARG}" ;;
+	p) pattern="${OPTARG}" ;;
+	v) verbose=y ;;
+	*)
+		log e "Invalid argument \"${arg}\""
+		exit 2
+		;;
 	esac
 done
 
@@ -126,7 +126,7 @@ if [[ ${min} -gt ${max} ]]; then
 		Minimum (${min}) is greater than maximum (${max}) is an unfufilable condition;
 		    Swapping the values of min/max from ${min}/${max} to ${max}/${min} to fix contradiction & proceeding...
 	EOF
-	read -r max min <<< "${min} ${max}"
+	read max min <<< "${min} ${max}"
 fi
 #
 # Ensures the response to capitals is a yes/no
