@@ -16,7 +16,7 @@ is_shadow="${is_shadow:-root}"
 # path, owner, octal perm, attribute
 metamod() {
 	# Change its permissions & attributes based on the given options
-	echo "(${1}) was flagged."
+	echo "\"${1}\" was flagged."
 	chown -- "${2}" "${1}"
 	chmod -- "${3}" "${1}"
 	chattr -- +"${4}" "${1}"
@@ -24,13 +24,11 @@ metamod() {
 #
 # Helper function to (mon)itor (file)s
 filemon() {
-	# Setup iNotify
-	inotifywait --includei "${2}" --format '%w%f%0' -qmrP -e attrib -e move -e create -- "${1}" |
-		while read -r file; do
-			# Ensure the path isn't a directory
-			# Ampersand (&) placed at the end of metamod to prevent it from bottle-necking.
-			[[ -f ${file} ]] && metamod "${file}" "${3}" "${4}" "${5}" &
-		done
+	while IFS='' read -rd '' file; do
+		# Ensure the path isn't a directory
+		# Ampersand (&) placed at the end of metamod to prevent it from bottle-necking.
+		[[ -f ${file} ]] && metamod "${file}" "${3}" "${4}" "${5}" &
+	done < <(inotifywait --includei "${2}" --format '%w%f%0' -qmrP -e attrib -e move -e create -- "${1}")
 }
 
 
