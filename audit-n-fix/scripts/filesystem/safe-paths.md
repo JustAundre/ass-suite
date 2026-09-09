@@ -1,4 +1,4 @@
-# Finding Unsafe Node Names
+# Safe Paths
 
 > [!TIP]
 >

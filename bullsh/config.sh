@@ -8,7 +8,9 @@
 # Anti-DDoS
 #
 # Kill extra sessions of the script from the same user
-pgrep -f "${0}" -u "${USER}" | grep -v "^$$\$" | xargs kill -9 &> /dev/null
+pgrep -f "${0}" -u "${USER}" |
+	grep -v "^$$\$" |
+	xargs kill -9 &> /dev/null
 
 
 
