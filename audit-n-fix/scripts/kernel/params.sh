@@ -16,7 +16,7 @@
 		install -m 640 -o 0 -g 0 cnf/sysctl/kernel.conf /etc/sysctl.d/99-security.conf
 	#
 	# Load Anti-IPv6 sysctl profile
-	if ! [[ -f /etc/sysctl.d/99-disable-ipv6.conf ]]; then
+	if [[ ! -f /etc/sysctl.d/99-disable-ipv6.conf ]]; then
 		confirm 'Disable IPv6 @ kernel level' &&
 			install -m 640 -o 0 -g 0 cnf/sysctl/kernel-no-ipv6.conf /etc/sysctl.d/99-disable-ipv6.conf;
 	fi
