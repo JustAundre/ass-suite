@@ -9,7 +9,7 @@
 #
 # Enumerate services and prompt a checklist for which to remove.
 mapfile -t services < <(TERM=dumb systemctl list-unit-files --type=service --no-legend --plain | awk '{ print $1 }')
-mapfile -td '' flagged_services < <(cl-new -mt 'Select services to REMOVE' "${services[@]}")
+mapfile -td '' flagged_services < <(PS2='Select services to REMOVE' cl-new -m "${services[@]}")
 #
 # Remove selected services
 for flagged_service in "${flagged_services[@]}"; do

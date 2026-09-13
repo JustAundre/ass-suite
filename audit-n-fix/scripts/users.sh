@@ -9,14 +9,12 @@
 #
 # Prompt for users to ...
 # Delete, remove password, lock, reshell, reUID & regroup.
-PS3="$(id -a "${all_users[@]}")"
-mapfile -td '' users_del < <(cl-new -mt 'Select users to delete' "${all_users[@]}")
-mapfile -td '' users_nullpass < <(cl-new -mt 'Select users to remove passwords from' "${all_users[@]}")
-mapfile -td '' users_lock < <(cl-new -mt 'Select users to lock' "${all_users[@]}")
-mapfile -td '' users_reshell < <(cl-new -mt 'Select users to select a new shell for' "${all_users[@]}")
-mapfile -td '' users_reuid < <(cl-new -mt 'Select users to assign a new UID' "${all_users[@]}")
-mapfile -td '' users_regroup < <(cl-new -mt 'Select users to reassign groups for' "${all_users[@]}")
-unset PS3
+mapfile -td '' users_del < <(PS2='Select users to delete' cl-new -m "${all_users[@]}")
+mapfile -td '' users_nullpass < <(PS2='Select users to remove passwords from' cl-new -m "${all_users[@]}")
+mapfile -td '' users_lock < <(PS2='Select users to lock' cl-new -m "${all_users[@]}")
+mapfile -td '' users_reshell < <(PS2='Select users to select a new shell for' cl-new -m "${all_users[@]}")
+mapfile -td '' users_reuid < <(PS2='Select users to assign a new UID' cl-new -m "${all_users[@]}")
+mapfile -td '' users_regroup < <(PS2='Select users to reassign groups for' cl-new -m "${all_users[@]}")
 
 
 

@@ -74,10 +74,7 @@ while true; do
 		plaintext+="port N/A, "
 	fi
 	#
-	# Interprets the destination port
-	# Same underlying logic as source port/[2]
-	# [3] is partially parsed here and [4] is partially parsed below because-
-	# the ip/port format is flipped to port/ip in the English transcription in favor of sentence flow.
+	# Interprets the dest. IP, while transcribing it after trascribing the dest. port to prioritize sentence flow.
 	[[ -n "${fields[3]}" ]] && rich_rule+="destination address=\"${fields[3]}\" "
 	if [[ "${fields[4]}" =~ ^[0-9]{1,5}$ && "${fields[4]}" -gt 0 && "${fields[4]}" -le 65535 ]]; then
 		plaintext+="en route to port ${fields[4]} "
@@ -86,10 +83,9 @@ while true; do
 	else
 		plaintext+="en route to port N/A "
 	fi
-	#
-	# Interprets the destination IP
-	# Same underlying logic as source IP/[1]
 	[[ -n "${fields[4]}" ]] && rich_rule+="port port=\"${fields[4]}\" "
+	#
+	# Transcribe the dest. IP
 	if [[ -z "${fields[3]}" ]]; then
 		plaintext+='of any IP '
 	elif
@@ -102,8 +98,7 @@ while true; do
 		plaintext+='of N/A '
 	fi
 	#
-	# Interprets the protocol;
-	# Only valid options are tcp/udp.
+	# Transcribes and interprets the protocol; Only valid options are TCP/UDP.
 	[[ -n "${fields[5]}" ]] && rich_rule+="protocol=\"${fields[5]}\" "
 	if [[ "${fields[5]}" =~ ^(udp|tcp)$ ]]; then
 		plaintext+="with the ${fields[5]} protocol "
@@ -131,7 +126,7 @@ while true; do
 	if [[ "${input[0]}" == $'\E' ]]; then
 		IFS='' read -sn2 'input[1]'
 	else
-		unset input[1]
+		unset 'input[1]'
 	fi
 	case "${input[0]}${input[1]}" in
 	$'\x7f'|$'\b')

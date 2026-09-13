@@ -23,13 +23,15 @@ for mod in "${mods[@]}"; do
 done
 #
 # Unload & disable selected modules.
-mapfile -td '' mods < <(
-	cl-new -mt 'These are active kernel modules; select those to unload and disable.' "${readable[@]}" |
+mapfile -td '' selections < <(
+	PS2='These are active kernel modules; select ones to disable.' cl-new -mo "${readable[@]}" |
 		cut -d: -f1
 )
-modprobe -r "${mods[@]}"
+if ! ((${#selections[@]})); then
+	log i 'No modules selected for disabling; ending script...'
+	exit 0
+fi
+modprobe -r "${selections[@]}"
 perm_fix -m 644 -o 0 -g 0 /etc/modprobe.d/hardening.conf
-for mod in "${mods[@]}"; do
-	echo "install ${mod} /bin/false" >>/etc/modprobe.d/hardening.conf
-done
+printf 'install %s /bin/false' "${selections[@]}" >> /etc/modprobe.d/hardening.conf
 log i 'You can find blocked kernel modules @ "/etc/modprobe.d/hardening.conf"'

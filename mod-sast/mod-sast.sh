@@ -69,7 +69,7 @@ calc_score() {
 		if (("${#link[@]}" > 0 && quad_mod < 0 && counter < min)); then
 			# Ditto but rounded up
 			capped=true
-			printf 'Points from %s: %s/%s (rounded up from from %s)\n' "${readable_name}" "${min}" "${max}" "${counter}"
+			printf 'Points from %s: %s/%s (rounded up from %s)\n' "${readable_name}" "${min}" "${max}" "${counter}"
 			counter="${min}"
 			break
 		fi
@@ -168,6 +168,6 @@ for jar in "${jars[@]}"; do (
 	# Score combinations for the 3 pillars
 	combine_scores 'Visible potential invasiveness' oshi misc_id uncommon_fsi concerning_fsi concerning_di
 	combine_scores 'Visible potential for destruction' rce jni uncommon_fsi concerning_fsi uncommon_moia concerning_moia
-	combine_scores 'Likelihood of intent masking' common_mor concerning_mor common_moo concerning_moo
+	combine_scores 'Likelihood of intent masking' common_mor concerning_mor common_moo
 	printf '\n\n\n\n\n'
 ) > >(tee "$(mktemp mc-sast-"$(basename "${jar}" .jar)"-XXXXX.txt)"); done

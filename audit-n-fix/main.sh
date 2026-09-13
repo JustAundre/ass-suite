@@ -1,67 +1,22 @@
 #!/usr/bin/env bash
-
-
-
-
-
 #
 # Environment Setup
 #
-# CD into the script's parent directory;
-# Source global functions and variables.
+# CD into the script's parent directory; source global functions and variables.
 cd "$(dirname "${0}")" || exit 1
 #
 # Source library commands
-[[ -d "../lib/" ]] || exit 1
+[[ -d "../lib/" ]] || exit 2
 for function in "../lib/"*; do
 	. "${function}"
 done
 #
 # Set editor
-# Secure UMASK
-# Include hidden directories when globbing
-# Trying to avoid errors when globbing results in nothing, & set case insensitivity for responses.
-# Unset aliases & disable alias expansion
-# Make a pipeline's exit code the exit code of the last failed command of the pipelines
 export EDITOR
-until [[ -x "${EDITOR}" ]] || hash "${EDITOR}" &>/dev/null; do
+until hash "${EDITOR}" &>/dev/null; do
 	log w 'EDITOR environment variable is invalid or empty; try nano or vi?'
 	read -erp 'Type a text editor and hit [ENTER] to confirm: ' EDITOR
 done
-umask 077
-shopt -s dotglob nullglob nocasematch
-unalias -a
-set -o pipefail
-
-
-
-
-
-#
-# Helper Variables
-#
-# Load the PATH variable into an array, then all executables in the PATH into an array
-mapfile -td ':' paths < <(printf '%s' "${PATH}")
-mapfile -td '' binaries < <(find -- "${paths[@]}" -maxdepth 1 -type f -executable -print0)
-#
-# Load all interactive, non-interactvie, and all users into their respective arrays
-mapfile -t int_users < <(
-	grep -vE '/(nologin|false|true)$' /etc/passwd |
-		awk -F: '$3 >= 1000 { print $1 }'
-)
-mapfile -t nonint_users < <(
-	grep -E '/(nologin|false|true)$' /etc/passwd |
-		awk -F: '$3 < 1000 { print $1 }'
-)
-mapfile -t all_users < <(cut -d: -f1 < /etc/passwd)
-#
-# Store OS details in an associative array.
-declare -A os_info
-while IFS='=' read -r key value; do
-	value="${value%\"}"
-	value="${value#\"}"
-	os_info["${key}"]="${value}"
-done < /etc/os-release
 
 
 
@@ -78,16 +33,16 @@ log i 'Running environment checks...'
 # 4. Is the output a terminal?
 [[ ${BASH_SOURCE[0]} == "${0}" ]] || errors+=('Script must be ran by Bash intepreter & must NOT be sourced.')
 [[ ${EUID} -eq 0 ]] || errors+=("Must run as root. Try (sudo bash ${0}).")
-[[ "$(< /proc/1/comm)" == systemd ]] || errors+=('System is not using SystemD which is the only system daemon supported by this script.')
+[[ "$(< /proc/1/comm)" == 'systemd' ]] || errors+=('System is not using SystemD which is the only system daemon supported by this script.')
 [[ -t 0 ]] || errors+=('All scripts here require an interactive terminal.')
 #
 # If any of the above, alert.
 if [[ ${#errors[@]} -ge 1 ]]; then
-	log e "${errors[@]}"
-	log e "Failed ${#errors[@]} startup checks."
-	confirm 'Continue' || exit 2
+	log e "${errors[@]}" "Failed ${#errors[@]} startup checks."
+	confirm 'Proceed anyway' || exit 3
+else
+	log i 'Passed environment checks.'
 fi
-log i 'Passed startup checks.'
 
 
 
@@ -98,8 +53,43 @@ log i 'Passed startup checks.'
 #
 # Enumerate all scripts, select 1 for execution.
 mapfile -td '' scripts < <(find scripts -name '*.sh' -print0 | sort -z)
-script="$(cl-new -t 'Choose a script to run' "${scripts[@]}")"
-. "${script}"
+mapfile -td '' selections < <(PS2='Choose a script to run' cl-new -m "${scripts[@]}")
+for script in "${selections[@]}"; do (
+	#
+	# Shell Opts & Helper Variables
+	#
+	# Include hidden directories when globbing
+	# Trying to avoid errors when globbing results in nothing, & set case insensitivity for responses.
+	# Unset aliases & disable alias expansion
+	# Make a pipeline's exit code the exit code of the last failed command of the pipelines
+	# Load the PATH variable into an array
+	# Load all executables in the PATH into an array
+	# Load users into arrays by type
+	# Store OS details in an associative array.
+	umask 077
+	shopt -s dotglob nullglob nocasematch
+	unalias -a
+	set -o pipefail
+	mapfile -td ':' paths < <(printf '%s' "${PATH}")
+	mapfile -td '' binaries < <(find -- "${paths[@]}" -maxdepth 1 -type f -executable -print0)
+	mapfile -t int_users < <(
+		grep -vE '/(nologin|false|true)$' /etc/passwd |
+			awk -F: '$3 >= 1000 { print $1 }'
+	)
+	mapfile -t nonint_users < <(
+		grep -E '/(nologin|false|true)$' /etc/passwd |
+			awk -F: '$3 < 1000 { print $1 }'
+	)
+	mapfile -t all_users < <(cut -d: -f1 < /etc/passwd)
+	declare -A os_info
+	while IFS='=' read -r key value; do
+		value="${value%\"}"
+		value="${value#\"}"
+		os_info["${key}"]="${value}"
+	done < /etc/os-release
+	export paths binaries int_users nonint_users all_users os_info
+	. "${script}"
+) done
 
 
 
