@@ -60,7 +60,7 @@ for file in "${files[@]}"; do
 	flags="$(grep -Pzc '(?<!(?<!\n)\n{6})#\n# \w+\n#\n' "${file}")"
 	if [[ ${flags} -gt 0 ]] && (( FIX )); then
 		mkdir -p "$(dirname "${tmp}/${file}")"
-		cp -p "${file}" "${tmp}/${file}"
+		cp -pv "${file}" "${tmp}/${file}"
 		perl -0777 -pi -e 's/\n*#\n# (.+)\n#\n/\n\n\n\n\n\n#\n# $1\n#\n/g' "${file}"
 		diff -d "${tmp}/${file}" "${file}"
 		exit_status="$?"

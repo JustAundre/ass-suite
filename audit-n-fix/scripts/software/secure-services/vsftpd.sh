@@ -14,7 +14,7 @@ certDir=/etc/ssl/private
 certFile="${certDir}/vsftpd.pem"
 #
 # Backup existing configurations
-cp -p "${vsftpdConfig}" "${backup}"
+cp -pv "${vsftpdConfig}" "${backup}"
 echo "✅: Backed up VSFTPD confugrations to ${backup}"
 
 
@@ -111,7 +111,7 @@ reconfig -x 'replace' -d '=' "require_ssl_reuse" "NO" /etc/vsftpd.conf
 timeout 2 vsftpd "${vsftpdConfig}" &>/dev/null
 if ! [[ $? -eq 124 ]]; then
 	log e "Configuration failed validation; reverting..."
-	cp -p "${backup}" "${vsftpdConfig}"
+	cp -pv "${backup}" "${vsftpdConfig}"
 	systemctl restart vsftpd
 	exit 10
 fi

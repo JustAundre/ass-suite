@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# TODO TODO TODO TODO MAKE BETTER PLEASE
 
 
 
@@ -26,15 +27,15 @@ mkdir -p "$backup_dir"
 systemctl stop nginx
 #
 # Backup existing configurations
-cp -a "/etc/nginx" "$backup_dir" &&
+cp -pva "/etc/nginx" "$backup_dir" &&
 	log i "Configuration backups are saved under \"$backup_dir\"."
 #
 # Add secure headers to outgoing requests
 mkdir -p /etc/nginx/snippets
-install -m 0640 -o 0 -g 0 ./general-confs/nginx-headers.conf "$hardening_snippets"
+install -m 0640 -o 0 -g 0 ./general-confs/nginx-headers.conf "${hardening_snippets}"
 #
 # General reduction of information leakage
-install -m 0640 -o 0 -g 0 ./general-confs/99-hardening.conf "$general_hardening"
+install -m 0640 -o 0 -g 0 ./general-confs/99-hardening.conf "${general_hardening}"
 #
 # Ensures it contains the conf.d include
 # Insert inside the http {} block right after it opens
@@ -85,7 +86,7 @@ fi
 # Generate strong Diffie-Hellman parameters for TLS
 if confirm 'Generate strong DH parameters for TLS (may take a while)'; then
 	openssl dhparam -out /etc/nginx/dhparam.pem 4096 &&
-		echo 'ssl_dhparam /etc/nginx/dhparam.pem;' >>"$general_hardening"
+		echo 'ssl_dhparam /etc/nginx/dhparam.pem;' >> "${general_hardening}"
 fi
 
 
@@ -95,12 +96,12 @@ fi
 #
 # Configuration Validation
 #
-log i 'Testing Nginx configuration...'
+log i 'Testing configuration...'
 if ! nginx -t; then
 	log i 'Nginx configuration is invalid; reverting Nginx...'
-	cp -p "$backup_dir/nginx.conf" "/etc/nginx/nginx.conf"
-	cp -p "$backup_dir/sites-available/default" "/etc/nginx/sites-available/default"
+	cp -pv "/etc/nginx~/nginx.conf" "/etc/nginx/nginx.conf"
+	cp -pv "${backup_dir}/sites-available/default" "/etc/nginx/sites-available/default"
 	exit 10
 fi
-log i 'Nginx configuration validated; restarting Nginx...'
+log i 'Nginx configuration validated.' 'Restarting Nginx...'
 systemctl restart nginx
