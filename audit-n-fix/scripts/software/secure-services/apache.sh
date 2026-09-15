@@ -100,7 +100,7 @@ if confirm 'Apply extended Apache hardening (TRACE, default site, modules, TLS, 
 		# secure_install libapache2-mod-security2 modsecurity-crs libapache2-mod-evasive
 		a2enmod security2 evasive
 		if [[ -f /etc/modsecurity/modsecurity.conf-recommended && ! -f /etc/modsecurity/modsecurity.conf ]]; then
-			cp -p /etc/modsecurity/modsecurity.conf-recommended /etc/modsecurity/modsecurity.conf
+			cp -pv /etc/modsecurity/modsecurity.conf-recommended /etc/modsecurity/modsecurity.conf
 		fi
 		sed -i 's/^SecRuleEngine .*/SecRuleEngine On/' /etc/modsecurity/modsecurity.conf
 	fi
