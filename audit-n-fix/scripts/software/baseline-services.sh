@@ -24,10 +24,10 @@ for svc_path in "${paths[@]}"; do
 		elif [[ "${real_path}" == /dev/null ]]; then
 			log i "${svc_path} is a masked service pointing to /dev/null."
 		else
-			if confirm "Unexpected link; ${svc_path} points to ${real_path}. Review"; then
+			if confirm "Review unexpected link (\"${svc_path}\" points to \"${real_path}\")"; then
 				"${EDITOR}" -- "${real_path}"
 				confirm "Delete link pointing from \"${svc_path}\" to \"${real_path}\"" && unlink -- "${svc_path}"
-				confirm "Delete source file \"${real_path}\"" && rm -vi "${real_path}"
+				confirm "Delete source file \"${real_path}\"" && rm -vi -- "${real_path}"
 			fi
 		fi
 	#
