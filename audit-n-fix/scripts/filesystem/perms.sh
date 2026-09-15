@@ -267,18 +267,8 @@ for path in "${paths[@]}"; do
 	perm_fix -m 700 -o 0 -g 0 "${path}"
 done
 #
-# Debian-based distros exclusive: APT keyrings
-if [[ "${os_info[ID]}" == debian || "${os_info[ID]}" == ubuntu ]]; then
-	if [[ -d /etc/apt/trusted.gpg.d ]]; then
-		mapfile -td '' paths < <(find /etc/apt/trusted.gpg.d -type f -print0)
-		for path in "${paths[@]}"; do
-			perm_fix -m 644 -o 0 -g 0 "${path}"
-		done
-	fi
-	if [[ -d /usr/share/keyrings ]]; then
-		mapfile -td '' paths < <(find /usr/share/keyrings -type f -print0)
-		for path in "${paths[@]}"; do
-			perm_fix -m 644 -o 0 -g 0 "${path}"
-		done
-	fi
-fi
+# APT keyrings
+mapfile -td '' paths < <(find /etc/apt/trusted.gpg.d /usr/share/keyrings -type f -print0)
+for path in "${paths[@]}"; do
+	perm_fix -m 644 -o 0 -g 0 "${path}"
+done
