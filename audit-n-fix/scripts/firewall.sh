@@ -4,9 +4,11 @@ firewalls=(
 	'Uncomplicated Firewall (UFW)'
 	'Firewall Daemon (FirewallD)'
 )
-hash pfctl &>/dev/null && firewalls+=('Packet Filters (pf)')
-selection="$(PS2='Select your firewall of choice' cl-new "${firewalls[@]}")"
-
+if hash pfctl; then
+	selection='Packet Filters (pf)'
+else
+	selection="$(PS2='Select your firewall of choice' cl-new "${firewalls[@]}")"
+fi
 case "${selection}" in
 	'UFW')
 		rm -rfv /etc/ufw
@@ -56,6 +58,7 @@ case "${selection}" in
 		firewall-cmd --reload
 		;;
 	'pf (Packet Filters)')
+		pkg install -fy FreeBSD-pf && log i 'Reinstalled "Packet Filters" package.'
 		cp -pv /etc/pf.conf{,~} && log i 'Backed up current pf configuration.'
 		install -o 0 -g wheel -m 640 cnf/pf.conf /etc/pf.conf && log i 'Installed preset pf configuration.'
 		if pfctl -nf /etc/pf.conf; then
@@ -64,9 +67,14 @@ case "${selection}" in
 			pfctl -f /etc/pf.conf && log i 'Reloaded pf configuration.'
 		else
 			log e 'New pf configuration failed syntax check.'
-			mv -vf /etc/pf.conf{~,} && log i 'Restored original pf configuration.'
-			pfctl -f /etc/pf.conf && log i 'Reloaded original pf configuration.'
+			if [[ -f '/etc/pf.conf~' ]]; then
+				mv -vf /etc/pf.conf{~,} && log i 'Restored original pf configuration.'
+				pfctl -f /etc/pf.conf && log i 'Reloaded original pf configuration.'
+			else
+				rm -v /etc/pf.conf{,~}
+			fi
 		fi
+		service pf restart
 		;;
 	*)
 		log e 'Firewall software unsupported.'

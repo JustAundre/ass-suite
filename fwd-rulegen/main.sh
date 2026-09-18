@@ -34,7 +34,7 @@ fields=(
 	'drop'      # Action
 )
 target=0
-while true; do
+while :; do
 	# Show the composition of the rule live
 	printf '\033[H\033[J'
 	rich_rule=$'--add-rich-rule=\''

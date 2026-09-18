@@ -5,62 +5,6 @@
 
 
 #
-# Script-specific Function(s)
-#
-# Helper function to select an action to rectify an issue with no preset fix.
-fixes=(
-	'Change ownership'
-	'Change permissions'
-	'Rename node'
-	'' '' ''
-	'Delete node'
-)
-select_fix() {
-	# Prompt for action
-	local PS3 selection selections x y user group basename
-	PS3+="\"${1}\" is owned by $(stat -c '%U:%G/%u:%g' "${1}") with permissions $(stat -c '%a' "${1}")"
-	#
-	# Act on selections
-	mapfile -t selections < <(cl-new -t 'Select a method of remediation.' checklist "${fixes[@]}")
-	for selection in "${selections[@]}"; do
-		# Prompt for new ownership
-		# Validate given user and group
-		# Change the ownership
-		case "${selection}" in
-		'Change ownership')
-			until [[ "${user}" =~ ^[0-9]+$ ]] || getent passwd -- "${user}" &>/dev/null && [[ -n "${user}" ]]; do
-				[[ -n "${x}" ]] && log w 'Invalid username/UID provided.' || x=true
-				read -erp 'Enter the new user owner: ' user
-			done
-			until [[ "${group}" =~ ^[0-9]+$ ]] || getent group -- "${group}" &>/dev/null && [[ -n "${group}" ]]; do
-				[[ -n "${y}" ]] && log w 'Invalid group/GID provided.' || y=true
-				read -erp 'Enter the new group owner: ' group
-			done
-			chown -hc -- "${user}:${group}" "${1}"
-		;;
-		'Change permissions')
-			until [[ "${perm}" =~ ^[1234567]{3,4}$ ]]; do
-				read -erp 'Enter the octal permission: ' perm
-			done
-			chmod -c -- "${perm}" "${1}"
-		;;
-		'Rename node')
-			read -erp 'Enter the new name for the node' basename
-			mv -- "${1}" "$(dirname -- "${1}")""${basename}"
-		;;
-		'Delete node')
-			rm -rfv -- "${1}"
-		;;
-		esac
-	done
-}
-export -f select_fix
-
-
-
-
-
-#
 # Invalidities
 #
 # Map out files w/ broken ownership.
@@ -77,11 +21,8 @@ for path in "${paths[@]}"; do (
 ) done
 #
 # Remove invalid symlinks
-mapfile -td '' paths < <(find / -xephem -xtype l -print0)
-for path in "${paths[@]}"; do
-	log i "${path} is a broken symlink; removing..."
-	unlink -- "${path}"
-done
+mapfile -td '' paths < <(find / -xephem -xtype l -print0 -delete)
+printf '%s\0' "${paths[@]}" >"${log_dir}/broken-symlinks.txt"
 #
 # Ensure FHS temp directories are world-writable w/ sticky-bit.
 perm_fix -m 1777 -o 0 -g 0 /tmp /var/tmp /dev/shm
@@ -97,18 +38,18 @@ perm_fix -m 1777 -o 0 -g 0 /tmp /var/tmp /dev/shm
 mapfile -td '' paths < <(find /etc -xephem '(' ! -group 0 -o ! -user 0 ')' -print0)
 for path in "${paths[@]}"; do
 	# If the owners are system users/groups, it's probably fine.
-	if [[ "$(stat -c %g "${path}")" -ge 1000 || "$(stat -c %u "${path}")" -ge 1000 ]]; then
-		select_fix "${path}"
+	user_owner="$(stat -c %u "${path}")"
+	group_owner="$(stat -c %g "${path}")"
+	if ((user_owner >= 1000 || group_owner >= 1000)); then
+		printf '%s\0' "${path}" > "${log_dir}/etc-user-owns.txt"
 	else
-		log i "${path} isn't owned by 0:0 but marked as likely safe as the owners are system users."
+		printf '%s\0' "${path}" > "${log_dir}/etc-system-owned.txt"
 	fi
 done
+unset user_owner group_owner
 #
 # Prompt for manual review for paths which are world-writable.
-mapfile -td '' paths < <(find / -xephem -perm -0002 -print0)
-for path in "${paths[@]}"; do
-	select_fix "${path}"
-done
+find / -xephem -perm -0002 -print0 >"${log_dir}/world-writables.txt"
 
 
 
@@ -117,18 +58,18 @@ done
 #
 # Identity & Authorization
 #
-# Handle /etc/passwd & /etc/group
+# /etc/passwd & /etc/group
 perm_fix -m 644 -o 0 -g 0 /etc/passwd /etc/group
 #
 # Shadow file permissions vary by the presence of the shadow group.
 if grep -qE '^shadow:' /etc/group; then
-	perm_fix -m 0640 -o 0 -g shadow /etc/shadow /etc/gshadow
-	perm_fix -m 0600 -o 0 -g 0 /etc/shadow- /etc/gshadow-
+	perm_fix -m 640 -o 0 -g shadow /etc/shadow /etc/gshadow
+	perm_fix -m 600 -o 0 -g 0 /etc/shadow- /etc/gshadow-
 else
-	perm_fix -m 0000 -o 0 -g 0 /etc/shadow /etc/gshadow /etc/shadow- /etc/gshadow-
+	perm_fix -m 000 -o 0 -g 0 /etc/shadow /etc/gshadow /etc/shadow- /etc/gshadow-
 fi
 #
-# Fix Sudoers configuration
+# Sudoers configuration
 mapfile -td '' paths < <(find /etc/sudoers.d /etc/sudoers -type f -print0)
 for path in "${paths[@]}"; do
 	perm_fix -m 600 -o 0 -g 0 "${path}"
@@ -145,7 +86,7 @@ done
 #
 # Misc. System Files
 #
-# Ensure only root can read the bootloader config
+# Bootloader config
 mapfile -td '' paths < <(find /boot -type f -print0)
 for path in "${paths[@]}"; do
 	perm_fix -m 640 -o 0 -g 0 "${path}"
@@ -155,7 +96,7 @@ for path in "${paths[@]}"; do
 	perm_fix -m 750 -o 0 -g 0 "${path}"
 done
 #
-# Ensure SystemD unit files are secure
+# SystemD unit files
 mapfile -td '' paths < <(find /etc/systemd/system -type f -print0)
 for path in "${paths[@]}"; do
 	perm_fix -m 640 -o 0 -g 0 "${path}"
@@ -165,7 +106,7 @@ for path in "${paths[@]}"; do
 	perm_fix -m 750 -o 0 -g 0 "${path}"
 done
 #
-# Secure cronjobs
+# Scheduled tasks
 mapfile -td '' paths < <(find /etc/cron.* /etc/crontab /etc/at.allow -type f -print0)
 for path in "${paths[@]}"; do
 	perm_fix -m 640 -o 0 -g 0 "${path}"
@@ -175,10 +116,10 @@ for path in "${paths[@]}"; do
 	perm_fix -m 750 -o 0 -g 0 "${path}"
 done
 #
-# Restrict privileged binaries
+# Privileged binaries
 perm_fix -m 750 -o 0 -g 0 /sbin/auditctl /sbin/aureport /sbin/ausearch /sbin/autrace /sbin/auditd /sbin/augenrules /bin/dmesg /usr/bin/dmesg
 #
-# Secure SSH configurations/private keys, and public keys.
+# SSH configurations, private keys, and public keys.
 mapfile -td '' paths < <(find /etc/ssh -type f -print0)
 for path in "${paths[@]}"; do
 	perm_fix -m 600 -o 0 -g 0 "${path}"
@@ -207,22 +148,20 @@ for path in "${paths[@]}"; do
 done
 #
 # Some distros use the adm user for these logs
-(
-	auditd_log_dir="$(dirname "$(awk -F'=' '/^\s*log_file/ {print $2}' /etc/audit/auditd.conf | xargs)")"
-	if [[ "${os_info[ID]}" =~ ^(ubuntu|almalinux)$ && -d "${auditd_log_dir}" ]]; then
-		mapfile -td '' paths < <(find "${auditd_log_dir}" -type f -print0)
-		for path in "${paths[@]}"; do
-			perm_fix -m 640 -o 0 -g adm "${path}"
-		done
-	else
-		mapfile -td '' paths < <(find "${auditd_log_dir}" -type f -print0)
-		for path in "${paths[@]}"; do
-			perm_fix -m 0600 -o 0 -g 0 "${path}"
-		done
-	fi
-	chmod -c 0750 -- "${auditd_log_dir}"
-)
-
+auditd_log_dir="$(dirname "$(awk -F'=' '/^\s*log_file/ {print $2}' /etc/audit/auditd.conf | xargs)")"
+if [[ "${os_info[ID]}" =~ ^(ubuntu|almalinux)$ && -d "${auditd_log_dir}" ]]; then
+	mapfile -td '' paths < <(find "${auditd_log_dir}" -type f -print0)
+	for path in "${paths[@]}"; do
+		perm_fix -m 640 -o 0 -g adm "${path}"
+	done
+else
+	mapfile -td '' paths < <(find "${auditd_log_dir}" -type f -print0)
+	for path in "${paths[@]}"; do
+		perm_fix -m 0600 -o 0 -g 0 "${path}"
+	done
+fi
+chmod -c 0750 -- "${auditd_log_dir}"
+unset auditd_log_dir
 #
 # Secure AuditD/rsyslog configurations
 mapfile -td '' paths < <(find /etc/audit /etc/rsyslog.d/ /etc/rsyslog.conf -mindepth 1 -type f -print0)
@@ -245,19 +184,18 @@ for path in "${paths[@]}"; do
 done
 #
 # Secure local home directories (including root's home @ /root)
-(for user in "${int_users[@]}"; do
+for user in "${int_users[@]}"; do
 	home="$(grep "^${user}:" /etc/passwd | head -n1 | cut -d: -f6)"
-
 	mapfile -td '' paths < <(find "${home}" -type f -print0)
 	for path in "${paths[@]}"; do
 		perm_fix -m 600 -o "${user}" -g "${user}" "${path}"
 	done
-
 	mapfile -td '' paths < <(find "${home}" -type d -print0)
 	for path in "${paths[@]}"; do
 		perm_fix -m 700 -o "${user}" -g "${user}" "${path}"
 	done
-done)
+done
+unset home
 mapfile -td '' paths < <(find /root -type f -print0)
 for path in "${paths[@]}"; do
 	perm_fix -m 600 -o 0 -g 0 "${path}"

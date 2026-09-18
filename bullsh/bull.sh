@@ -141,7 +141,7 @@ declare -rf log handover hash passwd_check
 # The Honey
 #
 # Fake terminal loop
-while true; do
+while :; do
 	case "${layer_at}" in
 	1)
 		# L1 | False Terminal
