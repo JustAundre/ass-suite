@@ -32,10 +32,10 @@ cp -pva "/etc/nginx" "$backup_dir" &&
 #
 # Add secure headers to outgoing requests
 mkdir -p /etc/nginx/snippets
-install -m 0640 -o 0 -g 0 ./general-confs/nginx-headers.conf "${hardening_snippets}"
+install -m 0640 -o 0 -g 0 -Dv general-confs/nginx-headers.conf "${hardening_snippets}"
 #
 # General reduction of information leakage
-install -m 0640 -o 0 -g 0 ./general-confs/99-hardening.conf "${general_hardening}"
+install -m 0640 -o 0 -g 0 -Dv general-confs/99-hardening.conf "${general_hardening}"
 #
 # Ensures it contains the conf.d include
 # Insert inside the http {} block right after it opens

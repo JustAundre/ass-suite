@@ -1,6 +1,27 @@
 #!/usr/bin/env bash
 # shellcheck shell=bash
 
+
+
+
+
+#
+# lint.sh - static checks for shell scripts in this repository
+#
+# Usage:
+#   hooks/lint.sh              check all tracked shell scripts
+#   hooks/lint.sh --staged     check only files staged for commit
+#   hooks/lint.sh --fix        auto-fix trailing whitespace and missing EOF newlines
+#   hooks/lint.sh --strict     treat shellcheck findings as failures
+#
+# Failures (always block):       bash syntax errors, whitespace issues
+# Advisories (block only with --strict): shellcheck findings
+#
+# Exit codes:
+#   0  checks passed
+#   1  a failure was found
+#   2  usage error
+
 set -u
 
 MODE="all"
@@ -60,7 +81,7 @@ for file in "${files[@]}"; do
 	flags="$(grep -Pzc '(?<!(?<!\n)\n{6})#\n# \w+\n#\n' "${file}")"
 	if [[ ${flags} -gt 0 ]] && (( FIX )); then
 		mkdir -p "$(dirname "${tmp}/${file}")"
-		cp -pv "${file}" "${tmp}/${file}"
+		cp -p "${file}" "${tmp}/${file}"
 		perl -0777 -pi -e 's/\n*#\n# (.+)\n#\n/\n\n\n\n\n\n#\n# $1\n#\n/g' "${file}"
 		diff -d "${tmp}/${file}" "${file}"
 		exit_status="$?"

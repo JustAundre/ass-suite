@@ -1,18 +1,10 @@
 #!/usr/bin/env bash
 
-
-
-
-
 #
 # Environment Setup
 #
 # Source configuration
 . "$(dirname "${0}")/config.sh" || exit 1
-
-
-
-
 
 #
 # The Shell
@@ -36,7 +28,7 @@ log() {
 		return 1
 		;;
 	esac
-	systemd-cat -t "${config[log_tag]}" <<< "${msg}"
+	systemd-cat -t "${config[log_tag]}" <<<"${msg}"
 }
 #
 # Function to pass into the real shell
@@ -132,10 +124,6 @@ passwd_check() {
 #
 # Prevent changing of core logic
 declare -rf log handover hash passwd_check
-
-
-
-
 
 #
 # The Honey

@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+
+
+
+
 #
 # Environment Setup
 #
@@ -22,8 +27,8 @@ word_pull() {
 	local word kill
 	while [[
 		${#word} -lt ${min} ||
-		${#word} -gt ${max}
-	]]; do
+		${#word} -gt ${max} ]] \
+		; do
 		# Verbose output: print scrapped words
 		[[ -n ${verbose} && -n ${word} ]] &&
 			log w "Dropped word \"${word}\" because it did not meet complexity requirements."
@@ -85,19 +90,15 @@ done
 [[ -z ${password_amount} && -t 0 ]] && read -erp 'Amount of passwords (Default is 1): ' password_amount >&"${ui}"
 if [[
 	-z ${pattern} &&
-	-t 0
-]]; then
-	cat >&"${ui}" <<- 'EOF'
+	-t 0 ]] \
+	; then
+	cat >&"${ui}" <<-'EOF'
 		w = Random word
 		n = Random number
 		s = Provided separator
 	EOF
 	read -erp 'Enter your generation pattern (Default is "wnswnswn"): ' pattern >&"${ui}"
 fi
-
-
-
-
 
 #
 # Input Validation
@@ -122,11 +123,11 @@ fi
 #
 # Ensures the minimum is not greater than the maximum
 if [[ ${min} -gt ${max} ]]; then
-	log w <<- EOF
+	log w <<-EOF
 		Minimum (${min}) is greater than maximum (${max}) is an unfufilable condition;
 		    Swapping the values of min/max from ${min}/${max} to ${max}/${min} to fix contradiction & proceeding...
 	EOF
-	read max min <<< "${min} ${max}"
+	read max min <<<"${min} ${max}"
 fi
 #
 # Ensures the response to capitals is a yes/no
@@ -148,18 +149,14 @@ if [[ ${password_amount} -lt 1 ]]; then
 	password_amount=1
 fi
 
-
-
-
-
 #
 # Password generation
 #
 # If no dictionary is present...
 if [[
 	! -f ${dict_location} &&
-	! -f en_US-dict.txt
-]]; then
+	! -f en_US-dict.txt ]] \
+	; then
 	# Attempt to download one (with consent)...
 	echo "W: A pre-existing dictionary couldn't be located in \"${dict_location}\"."
 	dict_location='en_US-dict.txt'
@@ -168,7 +165,7 @@ if [[
 	if [[ -t 0 ]]; then
 		read -erp "Download a dictionary from '${dict_url}' to '$(pwd)/${dict_location}? (aprox. ~76kb of characters, 10k words) [y/N]: '" download >&2
 	else
-		log e <<- 'EOF'
+		log e <<-'EOF'
 			As this is non-interactive,
 			    a prompt won't be shown for downloading an external dictionary,
 			    the dictionary won't be downloaded & the script will now close.
@@ -181,9 +178,9 @@ if [[
 		echo 'i: Downloading...' >&2
 		#
 		# Will timeout if download takes too long.
-		if ! curl -s "${dict_url}" --connect-timeout 5 > "${dict_location}"; then
+		if ! curl -s "${dict_url}" --connect-timeout 5 >"${dict_location}"; then
 			# Alert user of the error
-			log e <<- EOF
+			log e <<-EOF
 				Failed to download dictionary; the curl command exited with code "$?".
 				    deleting possible remnant file(s) & quitting...
 			EOF
@@ -195,31 +192,37 @@ if [[
 		fi
 	fi
 fi
+
+
+
+
+
 #
-# Generate password(s)
+# Generate Password(s)
+#
 echo 'Generated password(s):' >&2
 for ((x = 0; x < password_amount; x++)); do
 	unset result
 	for ((y = 0; y < ${#pattern}; y++)); do
 		char="${pattern:y:1}"
 		case "${char}" in
-			w | W)
-				# Parse w/W into a random word
-				word="$(word_pull)" || exit "$?"
-				result+="${word}"
-				;;
-			n | N)
-				# Parse n/N into a random number [0-9]
-				result+="$((RANDOM % 10))"
-				;;
-			s | S)
-				# Parse s/S into the given separator
-				result+="${separator}"
-				;;
-			*)
-				# More input validation
-				log w "Unrecognized character \"${char}\" in pattern at line 1, column ${y}. Ignoring..."
-				;;
+		w | W)
+			# Parse w/W into a random word
+			word="$(word_pull)" || exit "$?"
+			result+="${word}"
+			;;
+		n | N)
+			# Parse n/N into a random number [0-9]
+			result+="$((RANDOM % 10))"
+			;;
+		s | S)
+			# Parse s/S into the given separator
+			result+="${separator}"
+			;;
+		*)
+			# More input validation
+			log w "Unrecognized character \"${char}\" in pattern at line 1, column ${y}. Ignoring..."
+			;;
 		esac
 	done
 	#

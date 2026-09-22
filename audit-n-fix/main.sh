@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+
+
+
+
 #
 # Environment Setup
 #
@@ -20,6 +25,11 @@ until hash "${EDITOR}" &>/dev/null; do
 	log w 'The EDITOR variable is invalid or undeclared.' "A recognized editor couldn't be found in the PATH."
 	read -erp 'Type a text editor and hit [ENTER] to confirm: ' EDITOR
 done
+
+
+
+
+
 #
 # Shell Opts & Helper Variables
 #
@@ -29,6 +39,7 @@ done
 # Make a pipeline's exit code the exit code of the last failed command of the pipelines
 # Load users into arrays by type
 # Store OS details in an associative array
+# Store package manager in variable
 log_dir="$(pwd)/logs/$(date)" && mkdir -p "${log_dir}" || exit 3
 init="$(< /proc/1/comm)"
 umask 0077
@@ -48,7 +59,16 @@ while IFS='=' read -r key value; do
 	value="${value#\"}"
 	os_info["${key}"]="${value}"
 done < /etc/os-release
-export log_dir init int_users nonint_users all_users os_info
+for pkg_mgr in apt-get rpm pacman pkg; do
+	hash "${pkg_mgr}" &>/dev/null && break
+done
+export log_dir init int_users nonint_users all_users os_info pkg_mgr
+#
+# Self-explanatory.
+command_not_found_handle() {
+	log e "\"${1}\": command not found."
+}
+export -f command_not_found_handle
 
 
 
@@ -107,7 +127,7 @@ done
 # Exit
 #
 clear -x
-cat <<- EOF
+cat <<-EOF
 	  ---{=========}###[@]###{===========}---
 	        Windows at loss at the
 	           Agape freedom of Linux

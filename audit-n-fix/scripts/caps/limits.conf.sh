@@ -84,4 +84,4 @@ done
 #
 # Install
 #
-install -m 644 -o 0 -g 0 cnf/rsc-caps/limits.conf /etc/security/limits.conf
+install -m 644 -o 0 -g 0 -Dv cnf/rsc-caps/limits.conf /etc/security/limits.conf

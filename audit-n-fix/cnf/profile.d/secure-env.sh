@@ -19,7 +19,7 @@
 	TTY="$(tty)"
 	declare -rx TTY="${TTY##*/}"
 	declare -rx SSH_TTY="${TTY}"
-	UID="$(</proc/self/loginuid)"
+	UID="$(< /proc/self/loginuid)"
 	[[ "${UID}" == 4294967295 ]] && UID="$(id -u)"
 	declare -rx UID
 	USER="$(id -nu)"

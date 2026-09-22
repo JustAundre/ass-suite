@@ -11,8 +11,8 @@
 mapfile -td '' paths < <(find / -xephem '(' -nouser -o -nogroup ')' -print0)
 for path in "${paths[@]}"; do (
 	# Verbosity: note invalidities, their type, and the UID/GID.
-	[[ "$(stat -c '%U' "${path}")" == UNKNOWN ]] && invalid_type+=UID
-	[[ "$(stat -c '%G' "${path}")" == UNKNOWN ]] && {
+	[[ "$(stat -- -c '%U' "${path}")" == UNKNOWN ]] && invalid_type+=UID
+	[[ "$(stat -- -c '%G' "${path}")" == UNKNOWN ]] && {
 		[[ -n "${invalid_type}" ]] && invalid_type+=' & '
 		invalid_type+=GID
 	}
@@ -38,8 +38,8 @@ perm_fix -m 1777 -o 0 -g 0 /tmp /var/tmp /dev/shm
 mapfile -td '' paths < <(find /etc -xephem '(' ! -group 0 -o ! -user 0 ')' -print0)
 for path in "${paths[@]}"; do
 	# If the owners are system users/groups, it's probably fine.
-	user_owner="$(stat -c %u "${path}")"
-	group_owner="$(stat -c %g "${path}")"
+	user_owner="$(stat -- -c %u "${path}")"
+	group_owner="$(stat -- -c %g "${path}")"
 	if ((user_owner >= 1000 || group_owner >= 1000)); then
 		printf '%s\0' "${path}" > "${log_dir}/etc-user-owns.txt"
 	else

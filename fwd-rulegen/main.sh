@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+
+
+
+
 #
 # Environment Setup
 #
@@ -129,14 +134,14 @@ while :; do
 		unset 'input[1]'
 	fi
 	case "${input[0]}${input[1]}" in
-	$'\x7f'|$'\b')
+	$'\x7f' | $'\b')
 		fields["${target}"]="${fields["${target}"]%?}"
 		;;
 	$'\E[D')
-		((target<=0)) || ((target--))
+		((target <= 0)) || ((target--))
 		;;
 	$'\E[C')
-		((target>=${#fields[@]}-1)) || ((target++))
+		((target >= ${#fields[@]} - 1)) || ((target++))
 		;;
 	'')
 		printf '\033[H\033[J'

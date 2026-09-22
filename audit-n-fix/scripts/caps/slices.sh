@@ -29,8 +29,8 @@ done)
 #
 # Install
 #
-install -m 640 -o 0 -g 0 cnf/rsc-caps/slice-individual.slice /etc/systemd/system/user.slice.d/override.conf
-install -m 640 -o 0 -g 0 cnf/rsc-caps/slice-shared.slice /etc/systemd/system/user-.slice.d/override.conf
+install -m 640 -o 0 -g 0 -Dv cnf/rsc-caps/slice-individual.slice /etc/systemd/system/user.slice.d/override.conf
+install -m 640 -o 0 -g 0 -Dv cnf/rsc-caps/slice-shared.slice /etc/systemd/system/user-.slice.d/override.conf
 #
 # Reload SystemD
 systemctl daemon-reload
