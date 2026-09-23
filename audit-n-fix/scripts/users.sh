@@ -13,8 +13,8 @@ mapfile -t all_groups < <(cut -d ':' -f 1 < /etc/group)
 mapfile -t all_gids < <(cut -d ':' -f 3 < /etc/group)
 #
 # Compile vanity tags for display in checklists
-for u in "${all_users[@]}"; do
-	user_vanities+=("$(id "${u}") sh=$(grep -E "^${u}:" /etc/passwd | cut -d ':' -f 7)")
+for user in "${all_users[@]}"; do
+	user_vanities+=("$(id "${user}") sh=$(grep -E "^${user}:" /etc/passwd | cut -d ':' -f 7)")
 done
 for ((i=0; i<${#all_groups[@]}; i++)); do
 	group_vanities+=("gid=${all_gids["${i}"]}(${all_groups["${i}"]})")
@@ -34,19 +34,19 @@ mapfile -td '' selections < <(PS2='Select users to delete' cl-new -mo "${user_va
 for selection in "${selections[@]}"; do
 	users_del+=("${reverse_lookup["${selection}"]}")
 done
-for id in "${user_vanities[@]}"; do
-	u="${all_users["${reverse_lookup["${id}"]}"]}"
-	grep -qE "^${u}:"'\$' /etc/shadow || password_users+=("${id}")
+for vanity in "${user_vanities[@]}"; do
+	user="${reverse_lookup["${vanity}"]}"
+	grep -qE "^${u}:"'[^!:]+\$' /etc/shadow || password_users+=("${vanity}")
 done
 mapfile -td '' selections < <(PS2='Select users to remove passwords from' cl-new -mo "${password_users[@]}")
 for selection in "${selections[@]}"; do
 	users_nullpass+=("${reverse_lookup["${selection}"]}")
 done
-for id in "${user_vanities[@]}"; do
-	u="${all_users["${reverse_lookup["${id}"]}"]}"
-	grep -qE "^${u}:"'!' /etc/shadow || locked_users+=("${id}")
+for vanity in "${user_vanities[@]}"; do
+	user="${reverse_lookup["${vanity}"]}"
+	grep -qE "^${u}:"'!' /etc/shadow || unlocked_users+=("${vanity}")
 done
-mapfile -td '' selections < <(PS2='Select users to lock' cl-new -mo "${locked_users[@]}")
+mapfile -td '' selections < <(PS2='Select users to lock' cl-new -mo "${unlocked_users[@]}")
 for selection in "${selections[@]}"; do
 	users_lock+=("${reverse_lookup["${selection}"]}")
 done
@@ -76,21 +76,21 @@ done
 # Prompt to change the shell for users flagged to be reshelled.
 # Prompt to change the UID of users flagged to be reUIDed.
 # Prompt to change the primary & supplementary groups of users flagged to be regrouped.
-for u in "${users_del[@]}"; do
-	userdel -rf "${u}"
+for user in "${users_del[@]}"; do
+	userdel -rf "${user}"
 done
-for u in "${users_nullpass[@]}"; do
-	passwd "${u}" -d
+for user in "${users_nullpass[@]}"; do
+	passwd "${user}" -d
 done
-for u in "${users_lock[@]}"; do
-	passwd "${u}" -l
+for user in "${users_lock[@]}"; do
+	passwd "${user}" -l
 done
 mapfile -t shells < <(chsh -l)
-for u in "${users_reshell[@]}"; do
-	shell="$(PS2="Pick the new shell for user \"${u}\"" cl-new "${shells[@]}")"
-	usermod -s "${shell}" "${u}"
+for user in "${users_reshell[@]}"; do
+	shell="$(PS2="Pick the new shell for user \"${user}\"" cl-new "${shells[@]}")"
+	usermod -s "${shell}" "${user}"
 done
-for u in "${users_reuid[@]}"; do
+for user in "${users_reuid[@]}"; do
 	unset uid
 	until
 		[[ ${uid} =~ ^[0-9]+$ ]] &&
@@ -98,18 +98,18 @@ for u in "${users_reuid[@]}"; do
 	do
 		read -erp 'Enter the new UID: ' uid
 	done
-	usermod -u "${uid}" "${u}"
+	usermod -u "${uid}" "${user}"
 done
-for u in "${users_regroup[@]}"; do
+for user in "${users_regroup[@]}"; do
 	# Prompt for the new primary and supplementary groups
-	primary_group="${reverse_lookup["$(PS2="Select the new primary group for user \"${u}\"" cl-new -o "${group_vanities[@]}")"]}"
-	mapfile -td '' selections < <(PS2="Select new supplementary groups for user \"${u}\"" cl-new -mo "${group_vanities[@]}")
+	primary_group="${reverse_lookup["$(PS2="Select the new primary group for user \"${user}\"" cl-new -o "${group_vanities[@]}")"]}"
+	mapfile -td '' selections < <(PS2="Select new supplementary groups for user \"${user}\"" cl-new -mo "${group_vanities[@]}")
 	for selection in "${selections[@]}"; do
 		supplementary_groups+=("${reverse_lookup["${selection}"]}")
 	done
 	supplementary_groups="${supplementary_groups[*]}"
 	#
 	# Change the groups
-	((${#primary_group})) && usermod -g "${primary_group}" "${u}"
-	((${#supplementary_groups})) && usermod -G "${supplementary_groups// /,}" "${u}"
+	((${#primary_group})) && usermod -g "${primary_group}" "${user}"
+	((${#supplementary_groups})) && usermod -G "${supplementary_groups// /,}" "${user}"
 done
