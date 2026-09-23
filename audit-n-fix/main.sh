@@ -59,16 +59,10 @@ while IFS='=' read -r key value; do
 	value="${value#\"}"
 	os_info["${key}"]="${value}"
 done < /etc/os-release
-for pkg_mgr in apt-get rpm pacman pkg; do
+for pkg_mgr in apt-get dnf yum pacman pkg; do
 	hash "${pkg_mgr}" &>/dev/null && break
 done
 export log_dir init int_users nonint_users all_users os_info pkg_mgr
-#
-# Self-explanatory.
-command_not_found_handle() {
-	log e "\"${1}\": command not found."
-}
-export -f command_not_found_handle
 
 
 
