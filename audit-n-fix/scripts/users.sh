@@ -87,6 +87,7 @@ for user in "${users_lock[@]}"; do
 done
 mapfile -t shells < <(chsh -l)
 for user in "${users_reshell[@]}"; do
+	unset shell
 	shell="$(PS2="Pick the new shell for user \"${user}\"" cl-new "${shells[@]}")"
 	usermod -s "${shell}" "${user}"
 done
@@ -102,6 +103,7 @@ for user in "${users_reuid[@]}"; do
 done
 for user in "${users_regroup[@]}"; do
 	# Prompt for the new primary and supplementary groups
+	unset primary_group selections selection supplementary_groups
 	primary_group="${reverse_lookup["$(PS2="Select the new primary group for user \"${user}\"" cl-new -o "${group_vanities[@]}")"]}"
 	mapfile -td '' selections < <(PS2="Select new supplementary groups for user \"${user}\"" cl-new -mo "${group_vanities[@]}")
 	for selection in "${selections[@]}"; do
