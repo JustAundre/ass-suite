@@ -8,6 +8,8 @@
 #
 # Environment Setup
 #
+mapfile -t shells < <(chsh -l)
+#
 # Gather all groups & respective GIDs into an array
 mapfile -t all_groups < <(cut -d ':' -f 1 < /etc/group)
 mapfile -t all_gids < <(cut -d ':' -f 3 < /etc/group)
@@ -85,7 +87,6 @@ done
 for user in "${users_lock[@]}"; do
 	passwd "${user}" -l
 done
-mapfile -t shells < <(chsh -l)
 for user in "${users_reshell[@]}"; do
 	unset shell
 	shell="$(PS2="Pick the new shell for user \"${user}\"" cl-new "${shells[@]}")"
