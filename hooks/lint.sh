@@ -107,7 +107,7 @@ for file in "${files[@]}"; do
 	fi
 	if [[ -s "${file}" && -n "$(tail -c 1 "${file}")" ]]; then
 		if (( FIX )); then
-			printf '\n' >>"${file}"
+			printf '\n' >> "${file}"
 			git add -- "${file}"
 			printf 'i: Fixed missing newline at EOF of "%s".\n' "${file}"
 		else
@@ -117,7 +117,7 @@ for file in "${files[@]}"; do
 	fi
 done
 
-if command -v shellcheck &>/dev/null; then
+if command -v shellcheck &> /dev/null; then
 	for file in "${files[@]}"; do
 		if ! shellcheck "${file}"; then
 			if (( STRICT )); then

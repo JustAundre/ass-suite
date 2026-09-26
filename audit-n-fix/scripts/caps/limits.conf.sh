@@ -59,8 +59,8 @@ until ((pass)); do
 		# Validate domain, type (soft, hard, or -), item, and integer (plus -1 or 'unlimited')
 		if ! {
 			[[ "${domain}" =~ ^@[0-9]+(:[0-9]+)?$ || "${domain}" =~ ^[0-9]+(:[0-9]+)?$ || "${domain}" == '*' ]] ||
-			{ [[ "${domain}" =~ ^[@%]([a-zA-Z_.-]{1,32})$ ]] && getent group "${BASH_REMATCH[1]}" &>/dev/null; } ||
-			{ [[ "${domain}" =~ ^([a-zA-Z_.-]{1,32})$ ]] && getent passwd "${BASH_REMATCH[1]}" &>/dev/null; }
+			{ [[ "${domain}" =~ ^[@%]([a-zA-Z_.-]{1,32})$ ]] && getent group "${BASH_REMATCH[1]}" &> /dev/null; } ||
+			{ [[ "${domain}" =~ ^([a-zA-Z_.-]{1,32})$ ]] && getent passwd "${BASH_REMATCH[1]}" &> /dev/null; }
 		} || ! {
 			[[ "${type}" =~ ^(soft|hard|-)$ ]] &&
 			[[ "${value}" =~ ^(-1|[0-9]+|unlimited)$ ]] &&

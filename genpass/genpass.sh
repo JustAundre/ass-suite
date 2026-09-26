@@ -10,7 +10,7 @@
 # Source library commands
 [[ -d "../lib/" ]] || exit 69
 for function in "$../lib/"*; do
-	. "${function}"
+	source "${function}"
 done
 #
 # Filename/path of dictionary file & URL to fallback dictionary.

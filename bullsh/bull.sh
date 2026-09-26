@@ -4,7 +4,7 @@
 # Environment Setup
 #
 # Source configuration
-. "$(dirname "${0}")/config.sh" || exit 1
+source "$(dirname "${0}")/config.sh" || exit 1
 
 #
 # The Shell
@@ -109,7 +109,7 @@ passwd_check() {
 			echo "rbash: ${BASH_REMATCH[1]}: readonly variable"
 			log fail "${input}"
 			return 2
-		elif type -t "${cmd}" &>/devnull; then
+		elif type -t "${cmd}" &> /devnull; then
 			echo "rbash: ${cmd}: Permission denied"
 			log fail "${input}"
 			return 2
@@ -129,7 +129,7 @@ declare -rf log handover hash passwd_check
 # The Honey
 #
 # Fake terminal loop
-while :; do
+while true; do
 	case "${layer_at}" in
 	1)
 		# L1 | False Terminal

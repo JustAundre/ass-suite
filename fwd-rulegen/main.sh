@@ -10,7 +10,7 @@
 cd "$(dirname "${0}")" || exit 1
 [[ -d "../lib/" ]] || exit 2
 for function in ../lib/*; do
-	. "${function}"
+	source "${function}"
 done
 persistences=(
 	'Persistent'
@@ -39,7 +39,7 @@ fields=(
 	'drop'      # Action
 )
 target=0
-while :; do
+while true; do
 	# Show the composition of the rule live
 	printf '\033[H\033[J'
 	rich_rule=$'--add-rich-rule=\''
@@ -59,7 +59,7 @@ while :; do
 	if [[ -z "${fields[1]}" ]]; then
 		plaintext+='finds requests from anywhere, '
 	elif
-		ip route get "${fields[1]}" &>/dev/null
+		ip route get "${fields[1]}" &> /dev/null
 		status="$?"
 		[[ ! "${status}" -eq 1 ]]
 	then
@@ -94,7 +94,7 @@ while :; do
 	if [[ -z "${fields[3]}" ]]; then
 		plaintext+='of any IP '
 	elif
-		ip route get "${fields[3]}" &>/dev/null
+		ip route get "${fields[3]}" &> /dev/null
 		status="$?"
 		[[ ! "${status}" -eq 1 ]]
 	then

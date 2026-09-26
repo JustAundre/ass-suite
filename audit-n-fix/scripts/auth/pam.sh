@@ -71,7 +71,10 @@ case "${os_info['ID']} ${os_info['ID_LIKE']}" in
 	for path in "${paths[@]}"; do
 		# TODO: Automatically reinstall
 		pkg which -q -- "${path}"
-		(($? == 1)) && printf '%s\0' "${path}" >>"${log_dir}/unidentified-pam-overrides.txt"
+		if (($? == 1)); then
+			log w "Unidentified PAM configuration override found: ${path@Q}"
+			printf '%s\0' "${path}" >> "${log_dir}/unidentified-pam-overrides.txt"
+		fi
 	done
 	#
 	# Enable password quality checks

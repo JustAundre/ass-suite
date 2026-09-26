@@ -13,18 +13,24 @@ cd "$(dirname "${0}")" || exit 1
 # Source library commands/vars
 [[ -d "../lib/" ]] || exit 2
 for function in "../lib/"*; do
-	. "${function}"
+	source "${function}"
 done
 #
 # Set editor
 export EDITOR
-hash "${EDITOR}" &>/dev/null || for EDITOR in nano micro mcedit tilde joe e3 hx nvim vim vi kak emacs ed mp jed ash vis sam; do
-	hash "${EDITOR}" &>/dev/null && break
+hash "${EDITOR}" &> /dev/null || for EDITOR in nano micro mcedit tilde joe e3 hx nvim vim vi kak emacs ed mp jed ash vis sam; do
+	hash "${EDITOR}" &> /dev/null && break
 done
-until hash "${EDITOR}" &>/dev/null; do
+until hash "${EDITOR}" &> /dev/null; do
 	log w 'The EDITOR variable is invalid or undeclared.' "A recognized editor couldn't be found in the PATH."
 	read -erp 'Type a text editor and hit [ENTER] to confirm: ' EDITOR
 done
+#
+# Performance optimizations, not strictly necessary but great to have enabled.
+for builtin in basename dirname cut head logname mkfifo mktmp realpath rm rmdir seq sleep tee tty uname ln unlink whoami; do
+	[[ -f /usr/lib/bash/${builtin} ]] && enable -f "/usr/lib/bash/${builtin}" "${builtin}"
+done
+unset builtin
 
 
 
@@ -41,7 +47,7 @@ done
 # Store OS details in an associative array
 # Store package manager in variable
 log_dir="$(pwd)/logs/$(date)" && mkdir -p "${log_dir}" || exit 3
-init="$(< /proc/1/comm)"
+read -r init < /proc/1/comm
 umask 0077
 set -o pipefail
 mapfile -t int_users < <(
@@ -60,7 +66,7 @@ while IFS='=' read -r key value; do
 	os_info["${key}"]="${value}"
 done < /etc/os-release
 for pkg_mgr in apt-get dnf yum pacman pkg; do
-	hash "${pkg_mgr}" &>/dev/null && break
+	hash "${pkg_mgr}" &> /dev/null && break
 done
 export log_dir init int_users nonint_users all_users os_info pkg_mgr
 
@@ -100,11 +106,13 @@ fi
 mapfile -td '' scripts < <(find scripts -name '*.sh' -print0 | sort -z)
 mapfile -td '' selections < <(PS2='Choose a script to run' cl-new -m "${scripts[@]}")
 for script in "${selections[@]}"; do
+	log i "Incoming script: \"${script}\""
+	pause
 	(
 		trap 'exit 130' SIGINT
 		#
 		# Execute the script.
-		. "${script}"
+		source "${script}"
 	)
 	if ((${?} == 130)); then
 		log i 'Sending SIGINT (CTRL + C) during script execution sends you back to the main menu.' 'Send SIGINT again to terminate the script.'
@@ -120,7 +128,6 @@ done
 #
 # Exit
 #
-clear -x
 cat <<-EOF
 	  ---{=========}###[@]###{===========}---
 	        Windows at loss at the

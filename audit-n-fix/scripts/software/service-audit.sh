@@ -10,27 +10,47 @@
 case "${init}" in
 'systemd')
 	mapfile -td '' paths < <(find /etc/systemd/system -maxdepth 1 -mindepth 1 -print0)
-	for svc_path in "${paths[@]}"; do
+	for path in "${paths[@]}"; do
+		resolved_path="$(readlink -- "${path}")"
+		#
 		# Symlinks
-		if [[ -h "${svc_path}" ]]; then
-			real_path="$(readlink -- "${svc_path}")"
-			case "${real_path}" in
-			/lib/systemd/system/*|/usr/lib/systemd/system/*) printf '%s\0' "${svc_path}" "${real_path}" >> "${log_dir}/likely-vendor-services.txt" ;;
-			/dev/null) printf '%s\0' "${svc_path}" "${real_path}" >> "${log_dir}/masked-services.txt" ;;
-			*) printf '%s\0' "${svc_path}" "${real_path}" >> "${log_dir}/custom-services-(symlinked).txt" ;;
+		if [[ -h "${path}" ]]; then
+			case "${resolved_path}" in
+			/lib/systemd/system/*|/usr/lib/systemd/system/*)
+				log i "Likely vendor service: ${path@Q}"
+				printf '%s\0' "${path}" "${resolved_path}" >> "${log_dir}/likely-vendor-services.txt"
+				;;
+			/dev/null)
+				log i "Masked service: ${path@Q}"
+				printf '%s\0' "${path}" "${resolved_path}" >> "${log_dir}/masked-services.txt"
+				;;
+			*)
+				log w "Custom (and symlinked) service: ${path@Q}"
+				printf '%s\0' "${path}" "${resolved_path}" >> "${log_dir}/custom-services-(symlinked).txt"
+				;;
 			esac
 		#
 		# Directories
-		elif [[ -d "${svc_path}" ]]; then
-			case "${svc_path}" in
-			*.d) printf '%s\0' "${svc_path}" >> "${log_dir}/service-overrides-dirs.txt" ;;
-			*.wants) printf '%s\0' "${svc_path}" >> "${log_dir}/service-dependencies-dirs.txt" ;;
-			*) printf '%s\0' "${svc_path}" >> "${log_dir}/service-unknown-dirs.txt" ;;
+		elif [[ -d "${path}" ]]; then
+			case "${path}" in
+			*.d)
+				log w "Service override: ${path@Q}"
+				printf '%s\0' "${path}" >> "${log_dir}/service-overrides-dirs.txt"
+				;;
+			*.wants)
+				log i "Service dependencies: ${path@Q}"
+				printf '%s\0' "${path}" >> "${log_dir}/service-dependencies-dirs.txt"
+				;;
+			*)
+				log w "Unidentified directory: ${path@Q}"
+				printf '%s\0' "${path}" >> "${log_dir}/service-unknown-dirs.txt"
+				;;
 			esac
 		#
 		# Normal files
-		elif [[ -f "${svc_path}" ]]; then
-			printf '%s\0' "${svc_path}" >>"${log_dir}/custom-services.txt"
+		elif [[ -f "${path}" ]]; then
+			log w "Custom service found: ${path@Q}"
+			printf '%s\0' "${path}" >> "${log_dir}/custom-services.txt"
 		fi
 	done
 	;;

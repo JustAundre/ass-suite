@@ -37,7 +37,7 @@ fi
 #
 # AtD Jobs
 #
-if hash atd &>/dev/null; then
+if hash atd &> /dev/null; then
 	# AtD does not have a standardized directory where it stores Atd jobs, so you have to dig deep into its binary for it
 	mapfile -td '' paths < <(strings "$(which atd)" | grep -zoE '/var/spool/.+')
 	for path in "${paths[@]}"; do
@@ -70,11 +70,11 @@ fi
 # Crontabs
 #
 # Prompt to review, edit and/or delete the crontab of every user
-if hash crontab &>/dev/null; then
+if hash crontab &> /dev/null; then
 	for u in "${all_users[@]}"; do
 		log i "Reviewing crontab of user: \"${u}\"..."
 		pause 5
-		if crontab -u "${u}" -l &>/dev/null; then
+		if crontab -u "${u}" -l &> /dev/null; then
 	    	crontab -eu "${u}"
 	    	crontab -riu "${u}"
 		else
