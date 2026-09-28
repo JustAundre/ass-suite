@@ -50,14 +50,12 @@ log_dir="$(pwd)/logs/$(date)" && mkdir -p "${log_dir}" || exit 3
 read -r init < /proc/1/comm
 umask 0077
 set -o pipefail
-mapfile -t int_users < <(
-	grep -vE '/(nologin|false|true)$' /etc/passwd |
-		awk -F: '$3 >= 1000 { print $1 }'
-)
-mapfile -t nonint_users < <(
-	grep -E '/(nologin|false|true)$' /etc/passwd |
-		awk -F: '$3 < 1000 { print $1 }'
-)
+declare -A uid_bounds
+while IFS=' ' read -rd $'\n' key value; do
+	uid_bounds["${key}"]="${value}"
+done < <(awk '/^(SYS_)?UID_(MIN|MAX)/ {print $1, $2}' /etc/login.defs)
+mapfile -t int_users < <(awk -F: '$3 >= '"${uid_bounds[UID_MIN]}"' && $3 <= '"${uid_bounds[UID_MAX]}"' { print $1 }' /etc/passwd)
+mapfile -t nonint_users < <(awk -F: '$3 >= '"${uid_bounds[SYS_UID_MIN]}"' && $3 <= '"${uid_bounds[SYS_UID_MAX]}"' { print $1 }' /etc/passwd)
 mapfile -t all_users < <(cut -d: -f1 < /etc/passwd)
 declare -A os_info
 while IFS='=' read -r key value; do
@@ -68,7 +66,7 @@ done < /etc/os-release
 for pkg_mgr in apt-get dnf yum pacman pkg; do
 	hash "${pkg_mgr}" &> /dev/null && break
 done
-export log_dir init int_users nonint_users all_users os_info pkg_mgr
+export log_dir init int_users nonint_users all_users os_info pkg_mgr uid_bounds
 
 
 
@@ -87,6 +85,7 @@ log i 'Running environment checks...'
 [[ ${EUID} -eq 0 ]] || errors+=("Must run as root. Try (sudo bash ${0}).")
 [[ ${init} =~ ^(systemd|init)$ ]] || errors+=('Your init. system is unsupported (must be using SystemD or init).')
 [[ -t 0 ]] || errors+=('All scripts here require an interactive terminal.')
+((${#uid_bounds[@]}<4)) && errors+=('Unable to identify users on this system.')
 #
 # If any of the above, alert.
 if [[ ${#errors[@]} -ge 1 ]]; then
