@@ -11,8 +11,8 @@
 mapfile -t shells < <(chsh -l)
 #
 # Gather all groups & respective GIDs into an array
-mapfile -t all_groups < <(cut -d ':' -f 1 < /etc/group)
-mapfile -t all_gids < <(cut -d ':' -f 3 < /etc/group)
+mapfile -t all_groups < <(cut -d: -f1 < /etc/group)
+mapfile -t all_gids < <(cut -d: -f3 < /etc/group)
 #
 # Compile vanity tags for display in checklists
 for user in "${all_users[@]}"; do
