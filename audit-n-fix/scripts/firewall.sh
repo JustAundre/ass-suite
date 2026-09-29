@@ -4,14 +4,14 @@ firewalls=(
 	'Uncomplicated Firewall (UFW)'
 	'Firewall Daemon (FirewallD)'
 )
-if hash pfctl; then
+if hash pfctl &> /dev/null; then
 	selection='Packet Filters (pf)'
 else
 	selection="$(PS2='Select your firewall of choice' cl-new "${firewalls[@]}")"
 fi
 case "${selection}" in
-'UFW')
-	rm -rfv /etc/ufw
+*'(UFW)'*)
+	mv -v /etc/ufw{,~}
 	case "${pkg_mgr}" in
 	'apt-get')
 		"${pkg_mgr}" install --reinstall -y ufw
@@ -33,8 +33,8 @@ case "${selection}" in
 	ufw default deny incoming
 	ufw default allow outgoing
 	;;
-'FirewallD')
-	rm -rfv /etc/firewalld/
+*'(FirewallD)'*)
+	mv -v /etc/firewalld{,~}
 	case "${pkg_mgr}" in
 	'apt-get')
 		"${pkg_mgr}" install --reinstall -y firewalld
@@ -67,9 +67,9 @@ case "${selection}" in
 	firewall-cmd --permanent --add-icmp-block information-reply && log i 'Blocked ICMP information replies.'
 	firewall-cmd --reload
 	;;
-'pf (Packet Filters)')
+*'(pf)'*)
 	pkg install -fy FreeBSD-pf && log i 'Reinstalled "Packet Filters" package.'
-	cp -pv /etc/pf.conf{,~} && log i 'Backed up current pf configuration.'
+	mv -v /etc/pf.conf{,~} && log i 'Backed up current pf configuration.'
 	install -o 0 -g wheel -m 640 cnf/pf.conf /etc/pf.conf && log i 'Installed preset pf configuration.'
 	if pfctl -nf /etc/pf.conf; then
 		log i 'Passed syntax check.'
