@@ -10,25 +10,18 @@
 #
 mapfile -t shells < <(chsh -l)
 #
-# Gather all groups & respective GIDs into an array
-mapfile -t all_groups < <(cut -d: -f1 < /etc/group)
-mapfile -t all_gids < <(cut -d: -f3 < /etc/group)
-#
 # Compile vanity tags for display in checklists
-for user in "${all_users[@]}"; do
-	user_vanities+=("$(id "${user}") sh=$(grep -E "^${user}:" /etc/passwd | cut -d ':' -f 7)")
-done
-for ((i=0; i<${#all_groups[@]}; i++)); do
-	group_vanities+=("gid=${all_gids["${i}"]}(${all_groups["${i}"]})")
-done
-#
 # Create reverse-lookup associative array for matching backwards-matching from vanity to IDs
 declare -A reverse_lookup
-for ((i=0; i<${#user_vanities[@]}; i++)); do
-	reverse_lookup["${user_vanities["${i}"]}"]="${all_users["${i}"]}"
+for entry in "${passwd[@]}"; do
+	IFS=':' read -rd $'\n' user hash uid gid gecos home shell <<<"${entry}"
+	user_vanities+=("$(id "${uid}") sh=${shell@Q}")
+	reverse_lookup["${user_vanities["$((${#user_vanities[@]} - 1))"]}"]="${user}"
 done
-for ((i=0; i<${#group_vanities[@]}; i++)); do
-	reverse_lookup["${group_vanities["${i}"]}"]="${all_groups["${i}"]}"
+for entry in "${group[@]}"; do
+	IFS=':' read -rd $'\n' group hash gid members <<<"${entry}"
+	group_vanities+=("gid=${gid}(${group})")
+	reverse_lookup["${group_vanities["$((${#group_vanities[@]} - 1))"]}"]="${group}"
 done
 #
 # Prompt checklists
@@ -38,7 +31,7 @@ for selection in "${selections[@]}"; do
 done
 for vanity in "${user_vanities[@]}"; do
 	user="${reverse_lookup["${vanity}"]}"
-	grep -qE "^${u}:"'[^!:]+\$' /etc/shadow || password_users+=("${vanity}")
+	grep -qE "^${user}:"'[^!:]+\$' /etc/shadow || password_users+=("${vanity}")
 done
 mapfile -td '' selections < <(PS2='Select users to remove passwords from' cl-new -mo "${password_users[@]}")
 for selection in "${selections[@]}"; do
@@ -46,7 +39,7 @@ for selection in "${selections[@]}"; do
 done
 for vanity in "${user_vanities[@]}"; do
 	user="${reverse_lookup["${vanity}"]}"
-	grep -qE "^${u}:"'!' /etc/shadow || unlocked_users+=("${vanity}")
+	grep -qE "^${user?}:"'!' /etc/shadow || unlocked_users+=("${vanity}")
 done
 mapfile -td '' selections < <(PS2='Select users to lock' cl-new -mo "${unlocked_users[@]}")
 for selection in "${selections[@]}"; do

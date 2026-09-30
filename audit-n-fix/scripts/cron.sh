@@ -49,10 +49,10 @@ if hash atd &> /dev/null; then
 		fi
 		#
 		# Once a directory sticks, iterate through all the job files in it as necessary.
-		log i "Successfully located AtD job directory @ \"${path}\""
+		log i "Successfully located AtD job directory @ ${path@Q}"
 		mapfile -td '' jobs < <(find -- "${path}" ! -name '.SEQ' -type f)
 		for job in "${jobs[@]}"; do
-			log i "Reviewing AtD job \"${job}\"..."
+			log i "AtD job: ${job@Q}"
 			pause 3
 			"${EDITOR}" -- "${job}"
 			rm -vi -- "${job}"
@@ -71,14 +71,15 @@ fi
 #
 # Prompt to review, edit and/or delete the crontab of every user
 if hash crontab &> /dev/null; then
-	for u in "${all_users[@]}"; do
-		log i "Reviewing crontab of user: \"${u}\"..."
-		pause 5
-		if crontab -u "${u}" -l &> /dev/null; then
-	    	crontab -eu "${u}"
-	    	crontab -riu "${u}"
+	for entry in "${passwd[@]}"; do
+		IFS=':' read -rd $'\n' user hash uid gid gecos home shell <<<"${entry}"
+		if crontab -u "${user}" -l &> /dev/null; then
+			log i "Crontab of: ${user@Q}"
+			pause 3
+	    	crontab -eu "${user}"
+	    	crontab -riu "${user}"
 		else
-			log i "Skipped empty crontab for user: \"${u}\"."
+			log i "Skipped empty crontab for user: ${user@Q}."
 		fi
 	done
 else
