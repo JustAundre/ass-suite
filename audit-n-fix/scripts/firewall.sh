@@ -27,6 +27,11 @@ case "${selection}" in
 		exit 12
 		;;
 	esac
+	mkdir -p /etc/ufw
+	true >> /etc/ufw/before.rules
+	true >> /etc/ufw/before6.rules
+	true >> /etc/ufw/after.rules
+	true >> /etc/ufw/after6.rules
 	systemctl unmask ufw
 	systemctl enable --now ufw
 	ufw reset
