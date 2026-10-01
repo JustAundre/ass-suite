@@ -11,6 +11,7 @@ else
 fi
 case "${selection}" in
 *'(UFW)'*)
+	modprobe iptables iptables_filter
 	mv -v /etc/ufw{,~}
 	case "${pkg_mgr}" in
 	'apt-get')
