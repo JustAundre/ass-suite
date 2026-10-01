@@ -47,7 +47,7 @@ unset builtin
 # Store OS details in an associative array
 # Store package manager in variable
 log_dir="$(pwd)/logs/$(date)" && mkdir -p "${log_dir}" || exit 3
-read -r init < /proc/1/comm
+init="$(ps -p 1 -o comm=)"
 umask 0077
 set -o pipefail
 declare -A id_bounds
@@ -82,7 +82,7 @@ log i 'Running environment checks...'
 # 4. Is the output a terminal?
 [[ ${BASH_SOURCE[0]} == "${0}" ]] || errors+=('Script must be ran by Bash intepreter & must NOT be sourced.')
 [[ ${EUID} -eq 0 ]] || errors+=("Must run as root. Try (sudo bash ${0}).")
-[[ ${init} =~ ^(systemd|init)$ ]] || errors+=('Your init. system is unsupported (must be using SystemD or init).')
+[[ ${init} =~ ^(systemd|init)$ ]] || errors+=('Your system must be using SystemD or init).')
 [[ -t 0 ]] || errors+=('All scripts here require an interactive terminal.')
 #
 # If any of the above, alert.
