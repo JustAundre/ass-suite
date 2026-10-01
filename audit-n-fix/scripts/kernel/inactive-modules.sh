@@ -9,7 +9,7 @@
 #
 # Block all currently inactive modules from ever loading.
 if [[ ! -d /lib/modules/$(uname -r) ]]; then
-	log e 'The kernel modules for your active kernel no longer exist on the disk.' 'Please restart your machine.'
+	log e 'The kernel modules for your active kernel no longer exist on the disk, please restart your machine.'
 	exit 11
 fi
 #
