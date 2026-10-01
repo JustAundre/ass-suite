@@ -7,10 +7,10 @@
 #
 # PAM Configuration
 #
-mapfile -td '' responses < <(PS2='Select patches to apply.' cl-new -mo 'Enforce password quality' 'Fail locking' 'Reject logins for passwordless users')
+mapfile -td '' selections < <(PS2='Select patches to apply.' cl-new -mo 'Enforce password quality' 'Enforce minimum password length' 'Fail locking' 'Reject passwordless logins')
 case "${os_info['ID']} ${os_info['ID_LIKE']}" in
 *fedora*)
-	for response in "${responses[@]}"; do
+	for selections in "${selections[@]}"; do
 		case "${response}" in
 		'Enforce password quality')
 			args+=('with-pwquality')
@@ -31,19 +31,37 @@ case "${os_info['ID']} ${os_info['ID_LIKE']}" in
 	authselect apply-changes
 	;;
 *debian*|*ubuntu*)
-	for response in "${responses[@]}"; do
-		case "${response}" in
-		'Enforce password quality')
+	for selection in "${selections[@]}"; do
+		case "${selection}" in
+		'Enforce password complexity')
 			install -m 640 -o 0 -g 0 -Dv cnf/auth/pwquality /usr/share/pam-configs/pwquality
 			install -m 640 -o 0 -g 0 -Dv cnf/auth/pwquality.conf /etc/security/pwquality.conf
+			;;
+		'Enforce minimum password length')
+			if ! grep -qE 'pam_unix\.so.+minlen=' /etc/pam.d/common-password; then
+				log w 'A minimum password length is already being enforced.'
+				confirm 'Continue anyway' || continue
+			fi
+			echo 'Enter a minimum password length:'
+			until [[ "${response}" =~ ^[0-9]$ ]]; do
+				read -erp '> ' response
+			done
+			sed -i "/pam_unix\.so/s/\s+minlength=\d+\b/\tminlen=${response}/" /etc/pam.d/common-password
+			sed -i "/pam_unix\.so/s/$/\tminlen=${response}/" /etc/pam.d/common-password
 			;;
 		'Fail locking')
 			install -m 640 -o 0 -g 0 -Dv cnf/auth/faillock /usr/share/pam-configs/faillock
 			install -m 640 -o 0 -g 0 -Dv cnf/auth/faillock_reset /usr/share/pam-configs/faillock_reset
 			install -m 640 -o 0 -g 0 -Dv cnf/auth/faillock_notify /usr/share/pam-configs/faillock_notify
+			log i 'Enabled faillock.'
 			;;
 		'Reject logins for passwordless users')
-			sed -i 's/\s*nullok//g' /usr/share/pam-configs/unix
+			if ! grep -q 'nullok' /usr/share/pam-configs/unix; then
+				log i 'Logins for passwordless users are already rejected.'
+				continue
+			fi
+			sed -i 's/\s*nullok//g' /usr/share/pam-configs/unix &&
+				log i 'Logins for passwordless users are now rejected.'
 			;;
 		*)
 			log e "Unknown selection \"${response}\"."
