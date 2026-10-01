@@ -27,7 +27,24 @@ while IFS=':' read -rd '' mode uid user gid group type path; do
 		printf '%s\0' "${path}" >&9
 		log w "Owned by a non-system user: ${path@Q}"
 	fi
-done < <(find / -xephem -printf '%m:%U:%u:%G:%g:%y:%p\0') 3>"${log_dir}/suid-binaries.txt" 4>"${log_dir}/sgid-binaries.txt" 5>"${log_dir}/world-writables.txt" 6>"${log_dir}/no-user.txt" 7>"${log_dir}/no-group.txt" 8>"${log_dir}/broken-symlinks.txt" 9>"${log_dir}/etc-user-owned.txt" &
+	if [[ ! ${path} =~ /[\x00-\x7F\n]+$ ]]; then
+		printf '%s\0' "${path}" >&10
+		log w "Name contains non-ASCII character: ${path@Q}"
+	fi
+	if [[ ! ${path} =~ ^[a-zA-Z0-9_] ]]; then
+		printf '%s\0' "${path}" >&11
+		log w "Name leads with a non-alphanumeric character: ${path@Q}"
+	fi
+done < <(find / -xephem -printf '%m:%U:%u:%G:%g:%y:%p\0')\
+	3>"${log_dir}/suid-binaries.txt"\
+	4>"${log_dir}/sgid-binaries.txt"\
+	5>"${log_dir}/world-writables.txt"\
+	6>"${log_dir}/no-user.txt"\
+	7>"${log_dir}/no-group.txt"\
+	8>"${log_dir}/broken-symlinks.txt"\
+	9>"${log_dir}/etc-user-owned.txt"\
+	10>"${log_dir}/non-ascii-paths.txt"\
+	11>"${log_dir}/non-alphanumeric-leads.txt" &
 find /etc/sudoers.d /etc/sudoers -type f -print0 > "${log_dir}/tmp/sudoers-files.txt" &
 find /etc/sudoers.d -type d -print0 > "${log_dir}/tmp/sudoers-dirs.txt" &
 find /boot -type f -print0 > "${log_dir}/tmp/boot-files.txt" &
