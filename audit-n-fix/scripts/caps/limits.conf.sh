@@ -73,7 +73,7 @@ until ((pass)); do
 
 	if ((! pass)); then
 		log w 'There was a syntax error in your limits.conf.'
-		read -rp "Press [ENTER] to re-edit, or wait 10 seconds to exit." -t 10 || exit 10
+		read -erp "Press [ENTER] to re-edit, or wait 10 seconds to exit." -t 10 || exit 10
 	fi
 done
 
