@@ -13,8 +13,11 @@ mapfile -t shells < <(chsh -l)
 # Compile vanity tags for display in checklists
 # Create reverse-lookup associative array for matching backwards-matching from vanity to IDs
 declare -A reverse_lookup
+confirm 'Exclude system users from audit'
+include_sys="${?}"
 for entry in "${passwd[@]}"; do
 	IFS=':' read -rd $'\n' user hash uid gid gecos home shell <<<"${entry}"
+	((!include_sys)) && [[ "${shell}" =~ /(nologin|false)$ ]] && continue
 	user_vanities+=("$(id "${uid}") sh=${shell@Q}")
 	reverse_lookup["${user_vanities["$((${#user_vanities[@]} - 1))"]}"]="${user}"
 done
@@ -23,89 +26,78 @@ for entry in "${group[@]}"; do
 	group_vanities+=("gid=${gid}(${group})")
 	reverse_lookup["${group_vanities["$((${#group_vanities[@]} - 1))"]}"]="${group}"
 done
-#
-# Prompt checklists
-mapfile -td '' selections < <(PS2='Select users to delete' cl-new -mo "${user_vanities[@]}")
-for selection in "${selections[@]}"; do
-	users_del+=("${reverse_lookup["${selection}"]}")
-done
-for vanity in "${user_vanities[@]}"; do
-	user="${reverse_lookup["${vanity}"]}"
-	grep -qE "^${user}:"'[^!:]+\$' /etc/shadow || password_users+=("${vanity}")
-done
-mapfile -td '' selections < <(PS2='Select users to remove passwords from' cl-new -mo "${password_users[@]}")
-for selection in "${selections[@]}"; do
-	users_nullpass+=("${reverse_lookup["${selection}"]}")
-done
-for vanity in "${user_vanities[@]}"; do
-	user="${reverse_lookup["${vanity}"]}"
-	grep -qE "^${user?}:"'!' /etc/shadow || unlocked_users+=("${vanity}")
-done
-mapfile -td '' selections < <(PS2='Select users to lock' cl-new -mo "${unlocked_users[@]}")
-for selection in "${selections[@]}"; do
-	users_lock+=("${reverse_lookup["${selection}"]}")
-done
-mapfile -td '' selections < <(PS2='Select users to select a new shell for' cl-new -mo "${user_vanities[@]}")
-for selection in "${selections[@]}"; do
-	users_reshell+=("${reverse_lookup["${selection}"]}")
-done
-mapfile -td '' selections < <(PS2='Select users to assign a new UID' cl-new -mo "${user_vanities[@]}")
-for selection in "${selections[@]}"; do
-	users_reuid+=("${reverse_lookup["${selection}"]}")
-done
-mapfile -td '' selections < <(PS2='Select users to reassign groups for' cl-new -mo "${user_vanities[@]}")
-for selection in "${selections[@]}"; do
-	users_regroup+=("${reverse_lookup["${selection}"]}")
-done
 
 
 
 
 
 #
-# Main Logic
+# Prompting
 #
-# Delete users flagged as to be deleted.
-# Delete passwords of users flagged to have their password removed.
-# Lock users flagged to be locked.
-# Prompt to change the shell for users flagged to be reshelled.
-# Prompt to change the UID of users flagged to be reUIDed.
-# Prompt to change the primary & supplementary groups of users flagged to be regrouped.
-for user in "${users_del[@]}"; do
-	userdel -rf "${user}"
-done
-for user in "${users_nullpass[@]}"; do
-	passwd "${user}" -d
-done
-for user in "${users_lock[@]}"; do
-	passwd "${user}" -l
-done
-for user in "${users_reshell[@]}"; do
-	unset shell
-	shell="$(PS2="Pick the new shell for user \"${user}\"" cl-new "${shells[@]}")"
-	usermod -s "${shell}" "${user}"
-done
-for user in "${users_reuid[@]}"; do
-	unset uid
-	until
-		[[ ${uid} =~ ^[0-9]+$ ]] &&
-		! getent passwd "${uid}" /etc/passwd &> /dev/null
-	do
-		read -erp 'Enter the new UID: ' uid
+mapfile -td '' selections < <(PS2='Select users to modify' cl-new -mo "${user_vanities[@]}")
+for selection in "${selections[@]}"; do
+	delcare -A choices
+	choices=(
+		['Delete user']=0
+		['Lock user']=0
+		['Remove password']=0
+		['Change password']=0
+		['Change shell']=0
+		['Change UID']=0
+		['Change GID']=0
+		['Change Supplementary groups']=0
+	)
+	mapfile -td '' selections_2 < <(PS2='Select attributes to modify for user: '"${selection@Q}" cl-new -mo "${!choices[@]}")
+	for selection_2 in "${selections_2[@]}"; do
+		choices["${selection_2}"]=1
 	done
-	usermod -u "${uid}" "${user}"
-done
-for user in "${users_regroup[@]}"; do
-	# Prompt for the new primary and supplementary groups
-	unset primary_group selections selection supplementary_groups
-	primary_group="${reverse_lookup["$(PS2="Select the new primary group for user \"${user}\"" cl-new -o "${group_vanities[@]}")"]}"
-	mapfile -td '' selections < <(PS2="Select new supplementary groups for user \"${user}\"" cl-new -mo "${group_vanities[@]}")
-	for selection in "${selections[@]}"; do
-		supplementary_groups+=("${reverse_lookup["${selection}"]}")
-	done
-	supplementary_groups="${supplementary_groups[*]}"
-	#
-	# Change the groups
-	((${#primary_group})) && usermod -g "${primary_group}" "${user}"
-	((${#supplementary_groups})) && usermod -G "${supplementary_groups// /,}" "${user}"
+	if ((choices['Delete user'] && ${#selections_2[@]} > 1)); then
+		log e 'users.sh: [Delete] is mutually exclusive with all other options.'
+		log i "users.sh: skipping all processing (as a result of the above error) for user: ${selection}"
+		continue
+	elif ((choices['Remove password'] && choices['Change password'])); then
+		log e 'users.sh: [Remove password] is mutually exclusive with [Change password].'
+		log i "users.sh: skipping all processing (as a result of the above error) for user: ${selection}"
+		continue
+	fi
+	if ((choices['Delete user'])); then
+		userdel -rf "${user}"
+	fi
+	if ((choices['Lock user'])); then
+		passwd "${user}" -l
+	fi
+	if ((choices['Remove password'])); then
+		passwd "${user}" -d
+	fi
+	if ((choices['Change password'])); then
+		sudo passwd "${user}"
+	fi
+	if ((choices['Change shell'])); then
+		unset shell
+		shell="$(PS2="Pick the new shell for user \"${user}\"" cl-new "${shells[@]}")"
+		usermod -s "${shell}" "${user}"
+	fi
+	if ((choices['Change UID'])); then
+		unset uid
+		until
+			[[ ${uid} =~ ^[0-9]+$ ]] &&
+			! getent passwd "${uid}" /etc/passwd &> /dev/null
+		do
+			read -erp 'Enter the new UID: ' uid
+		done
+		usermod -u "${uid}" "${user}"
+	fi
+	if ((choices['Change GID'])); then
+		unset primary_group
+		primary_group="${reverse_lookup["$(PS2="Select the new primary group for user \"${user}\"" cl-new -o "${group_vanities[@]}")"]}"
+		usermod -g "${primary_group}" "${user}"
+	fi
+	if ((choices['Change supplementary groups'])); then
+		mapfile -td '' selections_3 < <(PS2="Select new supplementary groups for user \"${user}\"" cl-new -mo "${group_vanities[@]}")
+		for selection_3 in "${selections_3[@]}"; do
+			supplementary_groups+=("${reverse_lookup["${selection}"]}")
+		done
+		supplementary_groups="${supplementary_groups[*]}"
+		((${#supplementary_groups})) && usermod -G "${supplementary_groups// /,}" "${user}"
+	fi
 done
