@@ -36,48 +36,52 @@ done
 #
 mapfile -td '' selections < <(PS2='Select users to modify' cl-new -mo "${user_vanities[@]}")
 for selection in "${selections[@]}"; do
-	delcare -A choices
+	declare -A index
 	choices=(
-		['Delete user']=0
-		['Lock user']=0
-		['Remove password']=0
-		['Change password']=0
-		['Change shell']=0
-		['Change UID']=0
-		['Change GID']=0
-		['Change Supplementary groups']=0
+		'Delete user'
+		'Lock user'
+		'Remove password'
+		'Change password'
+		'Change shell'
+		'Change UID'
+		'Change GID'
+		'Change Supplementary groups'
 	)
-	mapfile -td '' selections_2 < <(PS2='Select attributes to modify for user: '"${selection@Q}" cl-new -mo "${!choices[@]}")
-	for selection_2 in "${selections_2[@]}"; do
-		choices["${selection_2}"]=1
+	for choice in "${!choices[@]}"; do
+		declare index["${choice}"]=0
 	done
-	if ((choices['Delete user'] && ${#selections_2[@]} > 1)); then
+	mapfile -td '' selections_2 < <(PS2='Modifying user: '"${selection}" cl-new -mo "${choices[@]}")
+	for selection_2 in "${selections_2[@]}"; do
+		index["${selection_2}"]=1
+	done
+	if ((index['Delete user'] && ${#selections_2[@]} > 1)); then
 		log e 'users.sh: [Delete] is mutually exclusive with all other options.'
 		log i "users.sh: skipping all processing (as a result of the above error) for user: ${selection}"
 		continue
-	elif ((choices['Remove password'] && choices['Change password'])); then
+	elif ((index['Remove password'] && index['Change password'])); then
 		log e 'users.sh: [Remove password] is mutually exclusive with [Change password].'
 		log i "users.sh: skipping all processing (as a result of the above error) for user: ${selection}"
 		continue
 	fi
-	if ((choices['Delete user'])); then
+	user="${reverse_lookup["${selection}"]}"
+	if ((index['Delete user'])); then
 		userdel -rf "${user}"
 	fi
-	if ((choices['Lock user'])); then
+	if ((index['Lock user'])); then
 		passwd "${user}" -l
 	fi
-	if ((choices['Remove password'])); then
+	if ((index['Remove password'])); then
 		passwd "${user}" -d
 	fi
-	if ((choices['Change password'])); then
-		sudo passwd "${user}"
+	if ((index['Change password'])); then
+		passwd "${user}"
 	fi
-	if ((choices['Change shell'])); then
+	if ((index['Change shell'])); then
 		unset shell
-		shell="$(PS2="Pick the new shell for user \"${user}\"" cl-new "${shells[@]}")"
+		shell="$(PS2="Pick the new shell for user: ${user@Q}" cl-new "${shells[@]}")"
 		usermod -s "${shell}" "${user}"
 	fi
-	if ((choices['Change UID'])); then
+	if ((index['Change UID'])); then
 		unset uid
 		until
 			[[ ${uid} =~ ^[0-9]+$ ]] &&
@@ -87,15 +91,16 @@ for selection in "${selections[@]}"; do
 		done
 		usermod -u "${uid}" "${user}"
 	fi
-	if ((choices['Change GID'])); then
+	if ((index['Change GID'])); then
 		unset primary_group
 		primary_group="${reverse_lookup["$(PS2="Select the new primary group for user \"${user}\"" cl-new -o "${group_vanities[@]}")"]}"
 		usermod -g "${primary_group}" "${user}"
 	fi
-	if ((choices['Change supplementary groups'])); then
+	if ((index['Change supplementary groups'])); then
+		unset supplementary_groups selections_3
 		mapfile -td '' selections_3 < <(PS2="Select new supplementary groups for user \"${user}\"" cl-new -mo "${group_vanities[@]}")
 		for selection_3 in "${selections_3[@]}"; do
-			supplementary_groups+=("${reverse_lookup["${selection}"]}")
+			supplementary_groups+=("${reverse_lookup["${selection_3}"]}")
 		done
 		supplementary_groups="${supplementary_groups[*]}"
 		((${#supplementary_groups})) && usermod -G "${supplementary_groups// /,}" "${user}"
