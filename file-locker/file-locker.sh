@@ -9,8 +9,8 @@
 #
 # Determine whether the system uses...
 # 0:shadow or 0:0 for the system
-is_shadow="$(getent group shadow | cut -d':' -f1)"
-is_shadow="${is_shadow:-root}"
+group='0'
+grep -qE '^.+:0:' /etc/passwd && group='shadow'
 #
 # Helper function to (mod)ify file (meta)data
 # path, owner, octal perm, attribute
@@ -39,16 +39,16 @@ filemon() {
 # Monitoring
 #
 # Monitor & revert changes to identity management
-filemon /etc '/(passwd|group)$' root 644 ia &
-filemon /etc '/g?shadow$' "root:${is_shadow}" 640 ia &
+filemon /etc '/(passwd|group)$' 0 644 ia &
+filemon /etc '/g?shadow$' "0:${group}" 640 ia &
 #
 # Lockdown all history files
-filemon /home '/history$' root 620 a &
-filemon /root '/history$' root 620 a &
+filemon /home '/history$' 0 620 a &
+filemon /root '/history$' 0 620 a &
 #
 # Lockdown bash rc/logout/profile files
-filemon /home '/(rc|logout|profile)$' root 640 ia &
-filemon /root '/(rc|logout|profile)$' root 640 ia &
+filemon /home '/(rc|logout|profile)$' 0 640 ia &
+filemon /root '/(rc|logout|profile)$' 0 640 ia &
 #
 # Keep the script active until all children processes exit
 wait
